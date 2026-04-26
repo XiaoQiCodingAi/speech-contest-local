@@ -173,9 +173,17 @@
 </head>
 <body>
     <div id="root"></div>
+    {/* 自动加载config.json的文件选择框 */}
+    <input 
+        type="file" 
+        ref={fileInputRef}
+        accept=".json,application/json" 
+        style={{display: 'none'}}
+        onChange={handleAutoConfigLoad}
+    />
     
     <script type="text/babel">
-        const { useState, useEffect } = React;
+        const { useState, useEffect, useRef } = React;
         
         const STORAGE_KEY = 'speech_contest_grades';
         
@@ -206,48 +214,71 @@
             const [currentTab, setCurrentTab] = useState('basic');
             const [selectedBigImage, setSelectedBigImage] = useState(null);
             const [uploading, setUploading] = useState(false);
+            const fileInputRef = useRef(null);
+            const [configLoaded, setConfigLoaded] = useState(false);
             
+            // 页面加载时自动弹出文件选择框
             useEffect(() => {
-                // 使用 IndexedDB 加载数据
+                // 延迟200ms触发，让页面先渲染完成
+                setTimeout(() => {
+                    if (fileInputRef.current) {
+                        fileInputRef.current.click();
+                    }
+                }, 200);
+            }, []);
+            
+            // 处理自动加载config.json
+            const handleAutoConfigLoad = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                // 检查文件名是否是config.json
+                if (file.name === 'config.json') {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        try {
+                            const data = JSON.parse(event.target.result);
+                            if (data.grades && Array.isArray(data.grades)) {
+                                setGrades(data.grades);
+                                window.SpeechContestDB.saveGrades(data.grades);
+                                setConfigLoaded(true);
+                            }
+                        } catch (err) {
+                            // 文件格式错误，忽略
+                        }
+                    };
+                    reader.readAsText(file);
+                } else {
+                    // 非config.json文件，也尝试加载
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        try {
+                            const data = JSON.parse(event.target.result);
+                            if (data.grades && Array.isArray(data.grades)) {
+                                setGrades(data.grades);
+                                window.SpeechContestDB.saveGrades(data.grades);
+                                setConfigLoaded(true);
+                            }
+                        } catch (err) {
+                            // 文件格式错误，忽略
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+                // 重置input允许重复选择同一文件
+                e.target.value = '';
+            };
+            
+            // 初始加载数据
+            useEffect(() => {
                 window.SpeechContestDB.loadGrades().then(saved => {
-                    if (saved) {
+                    if (saved && saved.length > 0) {
                         setGrades(saved);
-                        // 检查是否存在config.json并提示用户加载
-                        checkConfigFile();
                     } else {
                         setGrades(defaultGrades);
                         window.SpeechContestDB.saveGrades(defaultGrades);
                     }
                 });
-            }, []);
-            
-            // 检查是否存在config.json并提示加载
-            const checkConfigFile = () => {
-                // 创建一个隐藏的文件输入框来检测config.json是否存在
-                // 由于浏览器安全限制，只能通过用户手动选择文件来读取
-                // 所以这里只是显示提示信息
-            };
-            
-            // 页面加载时检查URL参数是否指定了配置文件
-            useEffect(() => {
-                const params = new URLSearchParams(window.location.search);
-                const configParam = params.get('config');
-                if (configParam === 'auto') {
-                    // 尝试从config.json加载
-                    fetch('config.json')
-                        .then(res => res.json())
-                        .then(data => {
-                            if (data.grades && Array.isArray(data.grades)) {
-                                if (confirm('发现 config.json，是否加载已有配置？（取消则使用默认空配置）')) {
-                                    setGrades(data.grades);
-                                    window.SpeechContestDB.saveGrades(data.grades);
-                                }
-                            }
-                        })
-                        .catch(() => {
-                            // config.json不存在，什么都不做
-                        });
-                }
             }, []);
             
             const saveGrades = (newGrades) => {
