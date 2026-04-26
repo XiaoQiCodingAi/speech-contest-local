@@ -357,6 +357,18 @@
                 window.SpeechContestDB.loadGrades().then(savedGrades => {
                     if (savedGrades) {
                         setGrades(savedGrades);
+                        // 检查config.json
+                        fetch('config.json')
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data.grades && Array.isArray(data.grades) && data.grades.length > 0) {
+                                    if (confirm('发现 config.json，是否加载已有配置？')) {
+                                        setGrades(data.grades);
+                                        window.SpeechContestDB.saveGrades(data.grades);
+                                    }
+                                }
+                            })
+                            .catch(() => {});
                     } else {
                         setGrades(defaultGrades);
                         window.SpeechContestDB.saveGrades(defaultGrades);

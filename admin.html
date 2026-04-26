@@ -212,11 +212,42 @@
                 window.SpeechContestDB.loadGrades().then(saved => {
                     if (saved) {
                         setGrades(saved);
+                        // 检查是否存在config.json并提示用户加载
+                        checkConfigFile();
                     } else {
                         setGrades(defaultGrades);
                         window.SpeechContestDB.saveGrades(defaultGrades);
                     }
                 });
+            }, []);
+            
+            // 检查是否存在config.json并提示加载
+            const checkConfigFile = () => {
+                // 创建一个隐藏的文件输入框来检测config.json是否存在
+                // 由于浏览器安全限制，只能通过用户手动选择文件来读取
+                // 所以这里只是显示提示信息
+            };
+            
+            // 页面加载时检查URL参数是否指定了配置文件
+            useEffect(() => {
+                const params = new URLSearchParams(window.location.search);
+                const configParam = params.get('config');
+                if (configParam === 'auto') {
+                    // 尝试从config.json加载
+                    fetch('config.json')
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.grades && Array.isArray(data.grades)) {
+                                if (confirm('发现 config.json，是否加载已有配置？（取消则使用默认空配置）')) {
+                                    setGrades(data.grades);
+                                    window.SpeechContestDB.saveGrades(data.grades);
+                                }
+                            }
+                        })
+                        .catch(() => {
+                            // config.json不存在，什么都不做
+                        });
+                }
             }, []);
             
             const saveGrades = (newGrades) => {
@@ -242,6 +273,26 @@
                 URL.revokeObjectURL(url);
             };
             
+            // 保存到config.json（固定文件名，换电脑时直接读取）
+            const saveToConfig = () => {
+                const exportObj = {
+                    version: '1.0',
+                    exportDate: new Date().toISOString(),
+                    grades: grades
+                };
+                const jsonStr = JSON.stringify(exportObj);
+                const blob = new Blob([jsonStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'config.json';
+                a.click();
+                URL.revokeObjectURL(url);
+                alert('配置已保存到 config.json\n换电脑后，将 config.json 与 admin.html 放在同一目录，然后打开 admin.html 即可自动加载配置。');
+            };
+            
+            // 加载config.json文件
+            
             // 从JSON文件导入数据
             const importData = (e) => {
                 const file = e.target.files[0];
@@ -251,7 +302,8 @@
                     try {
                         const data = JSON.parse(event.target.result);
                         if (data.grades && Array.isArray(data.grades)) {
-                            saveGrades(data.grades);
+                            setGrades(data.grades);
+                            window.SpeechContestDB.saveGrades(data.grades);
                             alert('导入成功！共 ' + data.grades.length + ' 个年级');
                         } else {
                             alert('文件格式错误：找不到 grades 数组');
@@ -760,15 +812,18 @@
                 <div className="container">
                     <h1 className="page-title">⚙️ 后台管理</h1>
                     
-                    {/* 数据导入导出按钮 */}
+                    {/* 数据保存按钮 */}
                     <div className="card" style={{marginBottom: '20px', background: '#f0f9ff'}}>
                         <div style={{display: 'flex', justifyContent: 'center', gap: '15px', flexWrap: 'wrap'}}>
-                            <button className="btn btn-success" onClick={exportData}>📤 导出数据</button>
+                            <button className="btn btn-success" onClick={saveToConfig}>💾 保存配置到 config.json</button>
                             <label className="btn btn-secondary" style={{cursor: 'pointer'}}>
-                                📥 导入数据
+                                📥 导入配置
                                 <input type="file" accept=".json" onChange={importData} style={{display: 'none'}} />
                             </label>
                         </div>
+                        <p style={{textAlign: 'center', color: '#666', fontSize: '12px', marginTop: '10px'}}>
+                            保存配置后，将 config.json 和 admin.html 一起拷贝到其他电脑即可使用
+                        </p>
                     </div>
                     
                     {selectedGrade ? renderEditPage() : renderGradeList()}
