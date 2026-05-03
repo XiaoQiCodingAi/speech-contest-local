@@ -323,11 +323,11 @@
             const [screen, setScreen] = useState('home'); // home, select-grade, random, game, result, stats
             const [grades, setGrades] = useState([]);
             const [selectedGrade, setSelectedGrade] = useState(null);
-            const [currentRound, setCurrentRound] = useState(0); // 0:认一认, 1:辨一辨, 2:说一说
+            const [currentRound, setCurrentRound] = useState(0); // 环节索引，根据年级动态变化
             const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0); // 当前题目在当前环节中的索引
             const [students, setStudents] = useState([]);
             const [currentStudent, setCurrentStudent] = useState(null);
-            const [currentScores, setCurrentScores] = useState({ r: [], d: [], e: [] }); // 改为数组，存储每题分数
+            const [currentScores, setCurrentScores] = useState({ r: [], d: [], e: [], s: [] }); // r:认一认, d:辨一辨, e:说一说, s:识图选一
             const [results, setResults] = useState([]);
             const [feedback, setFeedback] = useState({ show: false, correct: null, message: '' });
             const [tempName, setTempName] = useState(''); // 临时点名
@@ -340,7 +340,23 @@
             const [selectedOption, setSelectedOption] = useState(null);
             const [isTransitioning, setIsTransitioning] = useState(false);
             
+            // 识图选一专用状态
+            const [imageSelectPair, setImageSelectPair] = useState([]); // 当前左右两张图片
+            const [imageSelectCorrect, setImageSelectCorrect] = useState(null); // 正确答案索引 (0或1)
+            const [usedImageSelectIds, setUsedImageSelectIds] = useState(new Set()); // 已用图片ID集合（去重）
+            
             const rollInterval = useRef(null);
+            
+            // 获取当前年级的环节顺序
+            const getGradeRounds = () => {
+                if (!selectedGrade) return [];
+                const rounds = [];
+                if ((selectedGrade.recognition?.count || 0) > 0) rounds.push('recognition');
+                if ((selectedGrade.imageSelect?.count || 0) > 0) rounds.push('imageSelect');
+                if ((selectedGrade.discrimination?.count || 0) > 0) rounds.push('discrimination');
+                if ((selectedGrade.expression?.count || 0) > 0) rounds.push('expression');
+                return rounds;
+            };
             
             // 监听screen和currentRound和currentQuestionIndex变化，自动准备回合
             useEffect(() => {
@@ -423,12 +439,15 @@
                 console.log('confirmStudent调用, tempName:', tempName, 'selectedGrade:', selectedGrade?.id);
                 if (!tempName) return;
                 setCurrentStudent(tempName);
-                setCurrentScores({ r: [], d: [], e: [] });
+                setCurrentScores({ r: [], d: [], e: [], s: [] });
                 setCurrentRound(0);
                 setCurrentQuestionIndex(0);
                 setSelectedOption(null);
                 setCorrectOptionIndex(null);
                 setIsTransitioning(false);
+                setUsedImageSelectIds(new Set());
+                setImageSelectPair([]);
+                setImageSelectCorrect(null);
                 // prepareRound will be called by useEffect when screen changes
                 setScreen('game');
             };
@@ -438,24 +457,54 @@
                 console.log('prepareRound执行, currentRound:', currentRound, 'selectedGrade.id:', selectedGrade?.id);
                 if (!selectedGrade) { console.log('selectedGrade为空'); return; }
                 
-                if (currentRound === 0) {
+                const rounds = getGradeRounds();
+                if (rounds.length === 0) {
+                    alert('该年级未配置任何环节');
+                    return;
+                }
+                
+                const currentRoundKey = rounds[currentRound];
+                console.log('当前环节:', currentRoundKey, '总环节:', rounds);
+                
+                if (currentRoundKey === 'recognition') {
                     // 认一认
                     const imgs = selectedGrade.recognition?.images || [];
-                    console.log('认一认图片列表, 数量:', imgs.length, '图片:', imgs.map(i => ({id: i.id, url: i.url})));
                     if (imgs.length === 0) {
                         alert('请先在后台添加认一认图片');
                         return;
                     }
                     const randomIndex = Math.floor(Math.random() * imgs.length);
                     const img = imgs[randomIndex];
-                    console.log('随机选择图片, index:', randomIndex, 'img:', img);
                     setCurrentImages([img]);
+                    setImageSelectPair([]);
+                    setImageSelectCorrect(null);
+                    setDiscriminationOptions([]);
+                    setCorrectOptionIndex(null);
                     
-                    // 预加载当前环节剩余图片
-                    const remainingImgs = imgs.filter((_, i) => i !== randomIndex);
-                    preloadImages(remainingImgs);
-
-                } else if (currentRound === 1) {
+                } else if (currentRoundKey === 'imageSelect') {
+                    // 识图选一
+                    const allImgs = selectedGrade.imageSelect?.images || [];
+                    const availableImgs = allImgs.filter(img => !usedImageSelectIds.has(img.id));
+                    
+                    if (availableImgs.length < 2) {
+                        alert('识图选一图片不足，请上传更多图片');
+                        return;
+                    }
+                    
+                    // 随机选2张不重复的图片
+                    const shuffled = [...availableImgs].sort(() => Math.random() - 0.5);
+                    const img1 = shuffled[0];
+                    const img2 = shuffled[1];
+                    
+                    setImageSelectPair([img1, img2]);
+                    // 随机决定哪张是正确答案
+                    const correctIdx = Math.random() < 0.5 ? 0 : 1;
+                    setImageSelectCorrect(correctIdx);
+                    setCurrentImages([]);
+                    setDiscriminationOptions([]);
+                    setCorrectOptionIndex(null);
+                    
+                } else if (currentRoundKey === 'discrimination') {
                     console.log('进入辨一辨逻辑块');
                     // 辨一辨：使用标记的正确图片
                     const bigImgs = selectedGrade.discrimination?.bigImages || [];
@@ -474,6 +523,8 @@
                     const questionIndex = Math.floor(Math.random() * validBigImgs.length);
                     const questionImg = validBigImgs[questionIndex];
                     setCurrentImages([questionImg]);
+                    setImageSelectPair([]);
+                    setImageSelectCorrect(null);
                     console.log('辨一辨调试:', {
                         questionImg,
                         correctSmallId: questionImg.correctSmallId,
@@ -488,9 +539,9 @@
                         return;
                     }
                     
-                    // 从剩余小图中随机选2个作为错误选项（排除正确答案小图，确保正确答案不会出现在干扰项中）
+                    // 从剩余小图中随机选2个作为错误选项
                     const wrongSmallImgs = smallImgs
-                        .filter(s => s.id !== questionImg.correctSmallId) // 排除正确答案
+                        .filter(s => s.id !== questionImg.correctSmallId)
                         .sort(() => Math.random() - 0.5)
                         .slice(0, 2);
                     
@@ -504,11 +555,6 @@
                     setDiscriminationOptions(shuffledOptions);
                     setCorrectOptionIndex(newCorrectIndex);
                     
-                    // 预加载当前环节剩余大图和所有小图
-                    const remainingBigImgs = validBigImgs.filter(b => b.id !== questionImg.id);
-                    const allSmallImgs = smallImgs;
-                    preloadImages([...remainingBigImgs, ...allSmallImgs]);
-                    
                 } else {
                     // 说一说
                     const imgs = selectedGrade.expression?.images || [];
@@ -519,12 +565,10 @@
                     const randomIndex = Math.floor(Math.random() * imgs.length);
                     const img = imgs[randomIndex];
                     setCurrentImages([img]);
+                    setImageSelectPair([]);
+                    setImageSelectCorrect(null);
                     setDiscriminationOptions([]);
                     setCorrectOptionIndex(null);
-                    
-                    // 预加载当前环节剩余图片
-                    const remainingImgs = imgs.filter((_, i) => i !== randomIndex);
-                    preloadImages(remainingImgs);
                 }
                 setSelectedOption(null);
             };
@@ -561,22 +605,18 @@
                 const roundCount = selectedGrade?.discrimination?.count || 3;
                 setTimeout(() => {
                     setSelectedOption(null);
+                    const rounds = getGradeRounds();
                     if (currentQuestionIndex < roundCount - 1) {
-                        // 继续当前环节下一题
                         setCurrentQuestionIndex(currentQuestionIndex + 1);
-                        // prepareRound will be called by useEffect if needed
                     } else {
-                        // 进入下一环节
                         setCurrentQuestionIndex(0);
-                        if (currentRound < 2) {
+                        if (currentRound < rounds.length - 1) {
                             setCurrentRound(currentRound + 1);
-                            // prepareRound will be called by useEffect when currentRound changes
                         } else {
                             finishGame(newScores);
                         }
                     }
                 }, 2000);
-                // 2.5秒后解除过渡状态（比反馈时间长一点）
                 setTimeout(() => setIsTransitioning(false), 2500);
             };
             
@@ -592,32 +632,53 @@
                 }, 1500);
             };
             
-            // 认一认/说一说评分
-            const handleScore = (score) => {
+            // 认一认/说一说/识图选一评分
+            const handleScore = (score, scoreKey) => {
                 if (isTransitioning) return;
                 setIsTransitioning(true);
-                const key = currentRound === 0 ? 'r' : 'e';
-                const roundCount = selectedGrade?.[key === 'r' ? 'recognition' : 'expression']?.count || 3;
-                const newScores = { ...currentScores, [key]: [...(currentScores[key] || []), score] };
+                const newScores = { ...currentScores, [scoreKey]: [...(currentScores[scoreKey] || []), score] };
                 setCurrentScores(newScores);
+                
+                const rounds = getGradeRounds();
+                const currentRoundKey = rounds[currentRound];
+                const roundCount = selectedGrade?[currentRoundKey]?.count || 3;
+                
+                // 识图选一：记录已用图片
+                if (currentRoundKey === 'imageSelect' && imageSelectPair.length === 2) {
+                    const newUsed = new Set(usedImageSelectIds);
+                    newUsed.add(imageSelectPair[0].id);
+                    newUsed.add(imageSelectPair[1].id);
+                    setUsedImageSelectIds(newUsed);
+                }
                 
                 // 检查是否完成当前环节所有题目
                 if (currentQuestionIndex < roundCount - 1) {
-                    // 继续当前环节下一题
                     setCurrentQuestionIndex(currentQuestionIndex + 1);
-                    // prepareRound will be called by useEffect if needed
                 } else {
-                    // 进入下一环节
                     setCurrentQuestionIndex(0);
-                    if (currentRound < 2) {
+                    if (currentRound < rounds.length - 1) {
                         setCurrentRound(currentRound + 1);
-                        // prepareRound will be called by useEffect when currentRound changes
                     } else {
                         finishGame(newScores);
                     }
                 }
-                // 1秒后解除过渡状态，防止连续点击
                 setTimeout(() => setIsTransitioning(false), 1000);
+            };
+            
+            // 识图选一选择图片
+            const handleImageSelect = (index) => {
+                if (selectedOption !== null || isTransitioning) return;
+                setIsTransitioning(true);
+                
+                setSelectedOption(index);
+                const isCorrect = index === imageSelectCorrect;
+                
+                const scoreOptions = selectedGrade?.imageSelect?.scoreOptions || [3, 0];
+                const correctScore = scoreOptions[0];
+                const wrongScore = scoreOptions.length > 1 ? scoreOptions[scoreOptions.length - 1] : 0;
+                const earnedScore = isCorrect ? correctScore : wrongScore;
+                
+                handleScore(earnedScore, 's');
             };
             
             // 完成游戏
@@ -639,20 +700,23 @@
             
             // 计算各环节最高分
             const getMaxScores = () => {
-                if (!selectedGrade) return { r: 9, d: 9, e: 9 };
+                if (!selectedGrade) return { r: 9, d: 9, e: 9, s: 9 };
                 const rMax = (selectedGrade.recognition?.scoreOptions || [3,2,1,0])[0] * (selectedGrade.recognition?.count || 3);
+                const sMax = (selectedGrade.imageSelect?.scoreOptions || [3,0])[0] * (selectedGrade.imageSelect?.count || 3);
                 const dMax = (selectedGrade.discrimination?.scoreOptions || [3,0])[0] * (selectedGrade.discrimination?.count || 3);
                 const eMax = (selectedGrade.expression?.scoreOptions || [3,2,1,0])[0] * (selectedGrade.expression?.count || 3);
-                return { r: rMax, d: dMax, e: eMax, total: rMax + dMax + eMax };
+                return { r: rMax, s: sMax, d: dMax, e: eMax, total: rMax + sMax + dMax + eMax };
             };
             
             // 下一位学生
             const nextStudent = () => {
                 setCurrentStudent(null);
                 setTempName('');
-                setCurrentScores({ r: [], d: [], e: [] });
+                setCurrentScores({ r: [], d: [], e: [], s: [] });
                 setCurrentRound(0);
                 setCurrentQuestionIndex(0);
+                setUsedImageSelectIds(new Set());
+                setImageSelectPair([]);
                 setScreen('random');
             };
             
@@ -751,48 +815,86 @@
                             </div>
                         );
                     
-                    case 'game':
+                    case 'game': {
+                        const rounds = getGradeRounds();
+                        const currentRoundKey = rounds[currentRound];
+                        const roundCount = selectedGrade?.[currentRoundKey]?.count || 3;
+                        
                         return (
                             <div className="container">
                                 {/* 学生信息栏 */}
                                 <div className="student-bar">
                                     <span>👤 {currentStudent}</span>
-                                    <span>环节 {currentRound + 1}/3 第 {currentQuestionIndex + 1} 题</span>
+                                    <span>环节 {currentRound + 1}/{rounds.length} 第 {currentQuestionIndex + 1} 题</span>
                                 </div>
                                 
                                 {/* 环节标题 */}
                                 <div style={{marginBottom: '20px'}}>
-                                    {currentRound === 0 && <div className="section-title section-1">📷 认一认</div>}
-                                    {currentRound === 1 && <div className="section-title section-2">🔍 辨一辨</div>}
-                                    {currentRound === 2 && <div className="section-title section-3">🗣️ 说一说</div>}
+                                    {currentRoundKey === 'recognition' && <div className="section-title section-1">📷 认一认</div>}
+                                    {currentRoundKey === 'imageSelect' && <div className="section-title section-2">🔍 识图选一</div>}
+                                    {currentRoundKey === 'discrimination' && <div className="section-title section-2">🔍 辨一辨</div>}
+                                    {currentRoundKey === 'expression' && <div className="section-title section-3">🗣️ 说一说</div>}
                                 </div>
                                 
                                 <div className="card">
-                                    {/* 认一认/说一说 */}
-                                    {(currentRound === 0 || currentRound === 2) && (
+                                    {/* 认一认 */}
+                                    {currentRoundKey === 'recognition' && (
                                         <div>
                                             <div className="image-display">
                                                 {currentImages[0] ? (
                                                     <img src={currentImages[0]?.url} alt="题目" onError={(e) => { e.target.style.display = 'none'; console.log('图片加载失败:', currentImages[0]?.url); }} />
                                                 ) : (
                                                     <div style={{padding: '50px', textAlign: 'center', color: '#999'}}>
-                                                        loading... (URL: {currentImages[0]?.url})
+                                                        loading...
                                                     </div>
                                                 )}
                                             </div>
                                             <p className="text-center" style={{margin: '20px 0', fontSize: '18px'}}>
-                                                {currentRound === 0 ? '请说出这个物品的名称' : '请描述这张图片'}
+                                                请说出这个物品的名称
                                             </p>
                                             <div className="text-center">
-                                                {(currentRound === 0 ? selectedGrade?.recognition?.scoreOptions : selectedGrade?.expression?.scoreOptions) || [3, 2, 1, 0]).map((score, idx) => (
-                                                    <button key={idx} className={`btn score-btn score-${score}`} onClick={() => handleScore(score)}>{score}分</button>
+                                                {(selectedGrade?.recognition?.scoreOptions || [3, 2, 1, 0]).map((score, idx) => (
+                                                    <button key={idx} className={`btn score-btn score-${score}`} onClick={() => handleScore(score, 'r')}>{score}分</button>
                                                 ))}
                                             </div>
                                         </div>
                                     )}
                                     
+                                    {/* 识图选一 */}
+                                    {currentRoundKey === 'imageSelect' && (
+                                        <div>
+                                            <p className="text-center" style={{marginBottom: '20px', fontSize: '20px'}}>
+                                                请选择正确的图片
+                                            </p>
+                                            <div style={{display: 'flex', justifyContent: 'center', gap: '30px', marginTop: '20px'}}>
+                                                {imageSelectPair.length === 2 ? (
+                                                    <>
+                                                        <div 
+                                                            className={`option-item ${selectedOption === 0 ? (imageSelectCorrect === 0 ? 'correct' : 'wrong') : ''}`}
+                                                            onClick={() => handleImageSelect(0)}
+                                                            style={{width: '200px', height: '200px'}}
+                                                        >
+                                                            <img src={imageSelectPair[0]?.url} alt="选项1" />
+                                                        </div>
+                                                        <div 
+                                                            className={`option-item ${selectedOption === 1 ? (imageSelectCorrect === 1 ? 'correct' : 'wrong') : ''}`}
+                                                            onClick={() => handleImageSelect(1)}
+                                                            style={{width: '200px', height: '200px'}}
+                                                        >
+                                                            <img src={imageSelectPair[1]?.url} alt="选项2" />
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <div style={{textAlign: 'center', color: '#999', padding: '20px'}}>
+                                                        加载中...
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                    
                                     {/* 辨一辨 */}
-                                    {currentRound === 1 && (
+                                    {currentRoundKey === 'discrimination' && (
                                         <div>
                                             <p className="text-center" style={{marginBottom: '20px', fontSize: '20px'}}>
                                                 找出与上面相同的类型
@@ -804,10 +906,6 @@
                                                 {discriminationOptions.length === 0 ? (
                                                     <div style={{textAlign: 'center', color: '#999', padding: '20px'}}>
                                                         加载中...
-                                                        <br/>
-                                                        <small>大图{selectedGrade?.discrimination?.bigImages?.length}张 / 小图{selectedGrade?.discrimination?.smallImages?.length}张 / 已标记{selectedGrade?.discrimination?.bigImages?.filter(b => b.correctSmallId).length}张</small>
-                                                        <br/>
-                                                        <small style={{color: 'red'}}>discriminationOptions为空！请按F12打开控制台查看日志</small>
                                                     </div>
                                                 ) : discriminationOptions.map((option, index) => (
                                                     <div 
@@ -824,12 +922,39 @@
                                             </div>
                                         </div>
                                     )}
+                                    
+                                    {/* 说一说 */}
+                                    {currentRoundKey === 'expression' && (
+                                        <div>
+                                            <div className="image-display">
+                                                {currentImages[0] ? (
+                                                    <img src={currentImages[0]?.url} alt="题目" />
+                                                ) : (
+                                                    <div style={{padding: '50px', textAlign: 'center', color: '#999'}}>
+                                                        loading...
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <p className="text-center" style={{margin: '20px 0', fontSize: '18px'}}>
+                                                请描述这张图片
+                                            </p>
+                                            <div className="text-center">
+                                                {(selectedGrade?.expression?.scoreOptions || [3, 2, 1, 0]).map((score, idx) => (
+                                                    <button key={idx} className={`btn score-btn score-${score}`} onClick={() => handleScore(score, 'e')}>{score}分</button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         );
+                    }
                     
-                    case 'result':
-                        const total = (currentScores.r || 0) + (currentScores.d || 0) + (currentScores.e || 0);
+                    case 'result': {
+                        const rounds = getGradeRounds();
+                        const total = (currentScores.r || 0) + (currentScores.s || 0) + (currentScores.d || 0) + (currentScores.e || 0);
+                        const maxScores = getMaxScores();
+                        
                         return (
                             <div className="container">
                                 <h1 className="page-title">答题完成</h1>
@@ -840,22 +965,34 @@
                                     </div>
                                     
                                     <div className="result-breakdown">
-                                        <div className="result-item">
-                                            <div className="label">认一认</div>
-                                            <div className="score">{currentScores.r ?? 0}分</div>
-                                        </div>
-                                        <div className="result-item">
-                                            <div className="label">辨一辨</div>
-                                            <div className="score">{currentScores.d ?? 0}分</div>
-                                        </div>
-                                        <div className="result-item">
-                                            <div className="label">说一说</div>
-                                            <div className="score">{currentScores.e ?? 0}分</div>
-                                        </div>
+                                        {rounds.includes('recognition') && (
+                                            <div className="result-item">
+                                                <div className="label">认一认</div>
+                                                <div className="score">{currentScores.r ?? 0}分</div>
+                                            </div>
+                                        )}
+                                        {rounds.includes('imageSelect') && (
+                                            <div className="result-item">
+                                                <div className="label">识图选一</div>
+                                                <div className="score">{currentScores.s ?? 0}分</div>
+                                            </div>
+                                        )}
+                                        {rounds.includes('discrimination') && (
+                                            <div className="result-item">
+                                                <div className="label">辨一辨</div>
+                                                <div className="score">{currentScores.d ?? 0}分</div>
+                                            </div>
+                                        )}
+                                        {rounds.includes('expression') && (
+                                            <div className="result-item">
+                                                <div className="label">说一说</div>
+                                                <div className="score">{currentScores.e ?? 0}分</div>
+                                            </div>
+                                        )}
                                     </div>
                                     
                                     <div className="result-total">
-                                        总分：{total} / {getMaxScores().total} 分
+                                        总分：{total} / {maxScores.total} 分
                                     </div>
                                     
                                     <div className="text-center">
@@ -872,6 +1009,7 @@
                                 </div>
                             </div>
                         );
+                    }
                     
                     case 'stats':
                         return (

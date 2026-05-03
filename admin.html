@@ -195,7 +195,8 @@
                 students: [],
                 recognition: { images: [], count: 3, scoreOptions: [3, 2, 1, 0] },
                 discrimination: { bigImages: [], smallImages: [], count: 3, scoreOptions: [3, 0] },
-                expression: { images: [], count: 3, scoreOptions: [3, 2, 1, 0] }
+                expression: { images: [], count: 3, scoreOptions: [3, 2, 1, 0] },
+                imageSelect: { images: [], count: 3, scoreOptions: [3, 0] }
             },
             {
                 id: '2',
@@ -204,7 +205,18 @@
                 students: [],
                 recognition: { images: [], count: 3, scoreOptions: [3, 2, 1, 0] },
                 discrimination: { bigImages: [], smallImages: [], count: 3, scoreOptions: [3, 0] },
-                expression: { images: [], count: 3, scoreOptions: [3, 2, 1, 0] }
+                expression: { images: [], count: 3, scoreOptions: [3, 2, 1, 0] },
+                imageSelect: { images: [], count: 3, scoreOptions: [3, 0] }
+            },
+            {
+                id: '3',
+                name: '无语言',
+                subtitle: '无语言学生专项',
+                students: [],
+                recognition: { images: [], count: 0, scoreOptions: [] },
+                discrimination: { bigImages: [], smallImages: [], count: 3, scoreOptions: [3, 0] },
+                expression: { images: [], count: 0, scoreOptions: [] },
+                imageSelect: { images: [], count: 3, scoreOptions: [3, 0] }
             }
         ];
         
@@ -500,8 +512,13 @@
                             <span className="step-label">说一说</span>
                         </div>
                         <div className="step-line"></div>
-                        <div className={`step ${currentTab === 'students' ? 'active' : ''}`}>
+                        <div className={`step ${currentTab === 'imageSelect' ? 'active' : ''}`}>
                             <div className="step-num">5</div>
+                            <span className="step-label">识图选一</span>
+                        </div>
+                        <div className="step-line"></div>
+                        <div className={`step ${currentTab === 'students' ? 'active' : ''}`}>
+                            <div className="step-num">6</div>
                             <span className="step-label">学生</span>
                         </div>
                     </div>
@@ -519,6 +536,7 @@
                             <div className={`tab ${currentTab === 'recognition' ? 'active' : ''}`} onClick={() => setCurrentTab('recognition')}>认一认</div>
                             <div className={`tab ${currentTab === 'discrimination' ? 'active' : ''}`} onClick={() => setCurrentTab('discrimination')}>辨一辨</div>
                             <div className={`tab ${currentTab === 'expression' ? 'active' : ''}`} onClick={() => setCurrentTab('expression')}>说一说</div>
+                            <div className={`tab ${currentTab === 'imageSelect' ? 'active' : ''}`} onClick={() => setCurrentTab('imageSelect')}>识图选一</div>
                             <div className={`tab ${currentTab === 'students' ? 'active' : ''}`} onClick={() => setCurrentTab('students')}>学生列表</div>
                         </div>
                         
@@ -813,6 +831,67 @@
                             </div>
                         )}
                         
+                        {currentTab === 'imageSelect' && (
+                            <div>
+                                <p className="mb-10">上传用于识图选一的图片（二选一答题）</p>
+                                <div className="form-group">
+                                    <label className="form-label">题目数量</label>
+                                    <input 
+                                        type="text" 
+                                        className="form-input"
+                                        value={selectedGrade?.imageSelect?.count || 3}
+                                        onFocus={(e) => e.target.select()}
+                                        onChange={(e) => {
+                                            const val = parseInt(e.target.value);
+                                            if (!isNaN(val) && val >= 1 && val <= 20) {
+                                                updateGrade('imageSelect', { ...selectedGrade.imageSelect, count: val });
+                                            }
+                                        }}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">分数选项（逗号分隔，如 3,0 或 4,2,0）</label>
+                                    <input 
+                                        type="text" 
+                                        className="form-input"
+                                        value={(selectedGrade?.imageSelect?.scoreOptions || [3,0]).join(',')}
+                                        onChange={(e) => {
+                                            const vals = e.target.value.split(',').map(v => parseInt(v.trim())).filter(v => !isNaN(v));
+                                            if (vals.length > 0) {
+                                                updateGrade('imageSelect', { ...selectedGrade.imageSelect, scoreOptions: vals });
+                                            }
+                                        }}
+                                    />
+                                </div>
+                                <div className="upload-area" onClick={() => document.getElementById('imageSelect-upload').click()}>
+                                    <p>点击上传图片（可多选）</p>
+                                    <p style={{fontSize: '12px', color: '#999'}}>支持 jpg、png、gif 等格式，至少需要2张图片</p>
+                                </div>
+                                <input id="imageSelect-upload" type="file" accept="image/*" multiple style={{display: 'none'}} onChange={(e) => handleImageUpload(e, 'imageSelect')} />
+                                {uploading && (
+                                    <div style={{textAlign: 'center', padding: '15px', color: '#ff6b6b', fontWeight: 'bold', background: '#fff0f0', borderRadius: '10px', marginBottom: '15px'}}>
+                                        ⏰ 上传中，请稍候...
+                                    </div>
+                                )}
+                                <div className="image-grid">
+                                    {(selectedGrade?.imageSelect?.images || []).map(img => (
+                                        <div key={img.id} className="image-item">
+                                            <img src={img.url} alt={img.name} />
+                                            <button className="remove-btn" onClick={() => removeImage('imageSelect', img.id)}>×</button>
+                                        </div>
+                                    ))}
+                                </div>
+                                {(selectedGrade?.imageSelect?.images || []).length === 0 && (
+                                    <div className="empty-state">暂无图片，请上传（至少需要2张）</div>
+                                )}
+                                {(selectedGrade?.imageSelect?.images || []).length > 0 && (selectedGrade?.imageSelect?.images || []).length < 2 && (
+                                    <div style={{textAlign: 'center', padding: '10px', color: '#dc3545', background: '#f8d7da', borderRadius: '10px', marginTop: '10px'}}>
+                                        ⚠️ 图片数量不足，至少需要2张图片才能进行二选一
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                        
                         {currentTab === 'students' && (
                             <div>
                                 <div className="form-group" style={{display: 'flex', gap: '10px'}}>
@@ -876,6 +955,10 @@
                         <div className="config-item">
                             <span>说一说图片</span>
                             <span>{selectedGrade?.expression?.images?.length || 0} 张 / 分数选项 {selectedGrade?.expression?.scoreOptions?.join(', ') || '3,2,1,0'}</span>
+                        </div>
+                        <div className="config-item">
+                            <span>识图选一图片</span>
+                            <span>{selectedGrade?.imageSelect?.images?.length || 0} 张 / 分数选项 {selectedGrade?.imageSelect?.scoreOptions?.join(', ') || '3,0'}</span>
                         </div>
                         <div className="config-item">
                             <span>学生人数</span>
