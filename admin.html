@@ -572,18 +572,49 @@
                                     />
                                 </div>
                                 <div className="form-group">
-                                    <label className="form-label">分数选项（空格分隔，如 3 2 1 0）</label>
-                                    <input 
-                                        type="text" 
-                                        className="form-input"
-                                        value={(selectedGrade?.recognition?.scoreOptions || [3,2,1,0]).join(' ')}
-                                        onChange={(e) => {
-                                            const vals = e.target.value.split(' ').map(v => parseInt(v.trim())).filter(v => !isNaN(v));
-                                            if (vals.length > 0) {
-                                                updateGrade('recognition', { ...selectedGrade.recognition, scoreOptions: vals });
-                                            }
-                                        }}
-                                    />
+                                    <label className="form-label">分数选项（点击添加或删除）</label>
+                                    <div style={{display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px'}}>
+                                        {(selectedGrade?.recognition?.scoreOptions || [3,2,1,0]).map((score, idx) => (
+                                            <div key={idx} style={{position: 'relative', display: 'inline-flex', alignItems: 'center'}}>
+                                                <button 
+                                                    className={`btn ${score === 3 ? 'btn-success' : score === 2 ? 'btn-secondary' : score === 1 ? 'btn' : 'btn-danger'}`}
+                                                    style={{padding: '8px 16px', fontSize: '16px', minWidth: '50px'}}
+                                                >
+                                                    {score}分
+                                                </button>
+                                                <button 
+                                                    onClick={() => {
+                                                        const newScores = (selectedGrade?.recognition?.scoreOptions || [3,2,1,0]).filter((_, i) => i !== idx);
+                                                        updateGrade('recognition', { ...selectedGrade.recognition, scoreOptions: newScores });
+                                                    }}
+                                                    style={{position: 'absolute', top: '-8px', right: '-8px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '50%', width: '20px', height: '20px', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'}}
+                                                >×</button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
+                                        <input 
+                                            type="number" 
+                                            id="recognition-new-score"
+                                            className="form-input"
+                                            style={{width: '80px', padding: '8px'}}
+                                            placeholder="分数"
+                                            min="0"
+                                        />
+                                        <button 
+                                            className="btn btn-small btn-success"
+                                            onClick={() => {
+                                                const input = document.getElementById('recognition-new-score');
+                                                const val = parseInt(input?.value);
+                                                if (!isNaN(val) && val >= 0) {
+                                                    const currentScores = selectedGrade?.recognition?.scoreOptions || [3,2,1,0];
+                                                    const newScores = [...currentScores, val].sort((a, b) => b - a);
+                                                    updateGrade('recognition', { ...selectedGrade.recognition, scoreOptions: newScores });
+                                                    input.value = '';
+                                                }
+                                            }}
+                                        >添加</button>
+                                    </div>
                                 </div>
                                 <div className="upload-area" onClick={() => document.getElementById('recognition-upload').click()}>
                                     <p>点击上传图片（可多选）</p>
@@ -627,18 +658,49 @@
                                     />
                                 </div>
                                 <div className="form-group">
-                                    <label className="form-label">分数选项（空格分隔，如 3 2 1 0）</label>
-                                    <input 
-                                        type="text" 
-                                        className="form-input"
-                                        value={(selectedGrade?.discrimination?.scoreOptions || [3,0]).join(' ')}
-                                        onChange={(e) => {
-                                            const vals = e.target.value.split(' ').map(v => parseInt(v.trim())).filter(v => !isNaN(v));
-                                            if (vals.length > 0) {
-                                                updateGrade('discrimination', { ...selectedGrade.discrimination, scoreOptions: vals });
-                                            }
-                                        }}
-                                    />
+                                    <label className="form-label">分数选项（点击添加或删除）</label>
+                                    <div style={{display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px'}}>
+                                        {(selectedGrade?.discrimination?.scoreOptions || [3,0]).map((score, idx) => (
+                                            <div key={idx} style={{position: 'relative', display: 'inline-flex', alignItems: 'center'}}>
+                                                <button 
+                                                    className={`btn ${score > 0 ? 'btn-success' : 'btn-danger'}`}
+                                                    style={{padding: '8px 16px', fontSize: '16px', minWidth: '50px'}}
+                                                >
+                                                    {score}分
+                                                </button>
+                                                <button 
+                                                    onClick={() => {
+                                                        const newScores = (selectedGrade?.discrimination?.scoreOptions || [3,0]).filter((_, i) => i !== idx);
+                                                        updateGrade('discrimination', { ...selectedGrade.discrimination, scoreOptions: newScores });
+                                                    }}
+                                                    style={{position: 'absolute', top: '-8px', right: '-8px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '50%', width: '20px', height: '20px', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'}}
+                                                >×</button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
+                                        <input 
+                                            type="number" 
+                                            id="discrimination-new-score"
+                                            className="form-input"
+                                            style={{width: '80px', padding: '8px'}}
+                                            placeholder="分数"
+                                            min="0"
+                                        />
+                                        <button 
+                                            className="btn btn-small btn-success"
+                                            onClick={() => {
+                                                const input = document.getElementById('discrimination-new-score');
+                                                const val = parseInt(input?.value);
+                                                if (!isNaN(val) && val >= 0) {
+                                                    const currentScores = selectedGrade?.discrimination?.scoreOptions || [3,0];
+                                                    const newScores = [...currentScores, val].sort((a, b) => b - a);
+                                                    updateGrade('discrimination', { ...selectedGrade.discrimination, scoreOptions: newScores });
+                                                    input.value = '';
+                                                }
+                                            }}
+                                        >添加</button>
+                                    </div>
                                 </div>
                                 
                                 <div className="discrimination-setup">
@@ -784,18 +846,49 @@
                                     />
                                 </div>
                                 <div className="form-group">
-                                    <label className="form-label">分数选项（空格分隔，如 3 2 1 0）</label>
-                                    <input 
-                                        type="text" 
-                                        className="form-input"
-                                        value={(selectedGrade?.expression?.scoreOptions || [3,2,1,0]).join(' ')}
-                                        onChange={(e) => {
-                                            const vals = e.target.value.split(' ').map(v => parseInt(v.trim())).filter(v => !isNaN(v));
-                                            if (vals.length > 0) {
-                                                updateGrade('expression', { ...selectedGrade.expression, scoreOptions: vals });
-                                            }
-                                        }}
-                                    />
+                                    <label className="form-label">分数选项（点击添加或删除）</label>
+                                    <div style={{display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px'}}>
+                                        {(selectedGrade?.expression?.scoreOptions || [3,2,1,0]).map((score, idx) => (
+                                            <div key={idx} style={{position: 'relative', display: 'inline-flex', alignItems: 'center'}}>
+                                                <button 
+                                                    className={`btn ${score === 3 ? 'btn-success' : score === 2 ? 'btn-secondary' : score === 1 ? 'btn' : 'btn-danger'}`}
+                                                    style={{padding: '8px 16px', fontSize: '16px', minWidth: '50px'}}
+                                                >
+                                                    {score}分
+                                                </button>
+                                                <button 
+                                                    onClick={() => {
+                                                        const newScores = (selectedGrade?.expression?.scoreOptions || [3,2,1,0]).filter((_, i) => i !== idx);
+                                                        updateGrade('expression', { ...selectedGrade.expression, scoreOptions: newScores });
+                                                    }}
+                                                    style={{position: 'absolute', top: '-8px', right: '-8px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '50%', width: '20px', height: '20px', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'}}
+                                                >×</button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
+                                        <input 
+                                            type="number" 
+                                            id="expression-new-score"
+                                            className="form-input"
+                                            style={{width: '80px', padding: '8px'}}
+                                            placeholder="分数"
+                                            min="0"
+                                        />
+                                        <button 
+                                            className="btn btn-small btn-success"
+                                            onClick={() => {
+                                                const input = document.getElementById('expression-new-score');
+                                                const val = parseInt(input?.value);
+                                                if (!isNaN(val) && val >= 0) {
+                                                    const currentScores = selectedGrade?.expression?.scoreOptions || [3,2,1,0];
+                                                    const newScores = [...currentScores, val].sort((a, b) => b - a);
+                                                    updateGrade('expression', { ...selectedGrade.expression, scoreOptions: newScores });
+                                                    input.value = '';
+                                                }
+                                            }}
+                                        >添加</button>
+                                    </div>
                                 </div>
                                 <div className="upload-area" onClick={() => document.getElementById('expression-upload').click()}>
                                     <p>点击上传图片（可多选）</p>
@@ -840,18 +933,49 @@
                                     />
                                 </div>
                                 <div className="form-group">
-                                    <label className="form-label">分数选项（空格分隔，如 3 0 或 4 2 0）</label>
-                                    <input 
-                                        type="text" 
-                                        className="form-input"
-                                        value={(selectedGrade?.imageSelect?.scoreOptions || [3,0]).join(' ')}
-                                        onChange={(e) => {
-                                            const vals = e.target.value.split(' ').map(v => parseInt(v.trim())).filter(v => !isNaN(v));
-                                            if (vals.length > 0) {
-                                                updateGrade('imageSelect', { ...selectedGrade.imageSelect, scoreOptions: vals });
-                                            }
-                                        }}
-                                    />
+                                    <label className="form-label">分数选项（点击添加或删除）</label>
+                                    <div style={{display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px'}}>
+                                        {(selectedGrade?.imageSelect?.scoreOptions || [3,0]).map((score, idx) => (
+                                            <div key={idx} style={{position: 'relative', display: 'inline-flex', alignItems: 'center'}}>
+                                                <button 
+                                                    className={`btn ${score > 0 ? 'btn-success' : 'btn-danger'}`}
+                                                    style={{padding: '8px 16px', fontSize: '16px', minWidth: '50px'}}
+                                                >
+                                                    {score}分
+                                                </button>
+                                                <button 
+                                                    onClick={() => {
+                                                        const newScores = (selectedGrade?.imageSelect?.scoreOptions || [3,0]).filter((_, i) => i !== idx);
+                                                        updateGrade('imageSelect', { ...selectedGrade.imageSelect, scoreOptions: newScores });
+                                                    }}
+                                                    style={{position: 'absolute', top: '-8px', right: '-8px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '50%', width: '20px', height: '20px', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'}}
+                                                >×</button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
+                                        <input 
+                                            type="number" 
+                                            id="imageSelect-new-score"
+                                            className="form-input"
+                                            style={{width: '80px', padding: '8px'}}
+                                            placeholder="分数"
+                                            min="0"
+                                        />
+                                        <button 
+                                            className="btn btn-small btn-success"
+                                            onClick={() => {
+                                                const input = document.getElementById('imageSelect-new-score');
+                                                const val = parseInt(input?.value);
+                                                if (!isNaN(val) && val >= 0) {
+                                                    const currentScores = selectedGrade?.imageSelect?.scoreOptions || [3,0];
+                                                    const newScores = [...currentScores, val].sort((a, b) => b - a);
+                                                    updateGrade('imageSelect', { ...selectedGrade.imageSelect, scoreOptions: newScores });
+                                                    input.value = '';
+                                                }
+                                            }}
+                                        >添加</button>
+                                    </div>
                                 </div>
                                 <div className="upload-area" onClick={() => document.getElementById('imageSelect-upload').click()}>
                                     <p>点击上传图片（可多选）</p>
