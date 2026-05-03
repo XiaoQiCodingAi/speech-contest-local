@@ -370,10 +370,9 @@
                 // 复盘模式下，设置currentScores为记录的详情
                 if (screen === 'review' && reviewResult && reviewResult.scoresDetail) {
                     setCurrentScores(reviewResult.scoresDetail);
-                    // 根据记录恢复selectedGrade（如果有保存年段信息）
-                    if (!selectedGrade && grades.length > 0) {
-                        // 尝试通过学生姓名匹配年级
-                        const matched = grades.find(g => g.students?.some(s => s.name === reviewResult.student));
+                    // 根据记录恢复selectedGrade
+                    if (reviewResult.gradeId && grades.length > 0) {
+                        const matched = grades.find(g => g.id === reviewResult.gradeId);
                         if (matched) setSelectedGrade(matched);
                     }
                 }
@@ -1125,24 +1124,46 @@
                             setScreen('stats');
                             return null;
                         }
-                        const rounds = getGradeRounds();
-                        const maxScores = getMaxScores();
-                        const total = getRoundScore('r') + getRoundScore('s') + getRoundScore('d') + getRoundScore('e');
+                        
+                        // 尝试根据gradeId恢复年级配置
+                        const gradeForReview = grades.find(g => g.id === reviewResult.gradeId) || selectedGrade;
+                        const roundsForReview = [];
+                        if (gradeForReview?.id === '3' && (gradeForReview.imageSelect?.count || 0) > 0) roundsForReview.push('imageSelect');
+                        if ((gradeForReview?.recognition?.count || 0) > 0) roundsForReview.push('recognition');
+                        if ((gradeForReview?.discrimination?.count || 0) > 0) roundsForReview.push('discrimination');
+                        if ((gradeForReview?.expression?.count || 0) > 0) roundsForReview.push('expression');
+                        
+                        // 从scoresDetail计算各环节总分
+                        const detail = reviewResult.scoresDetail || {};
+                        const calcRoundScore = (key) => (detail[key] || []).reduce((a, b) => a + b, 0);
+                        const total = calcRoundScore('r') + calcRoundScore('s') + calcRoundScore('d') + calcRoundScore('e');
+                        
+                        // 计算各环节最高分
+                        const calcMaxScore = (key) => {
+                            const opts = gradeForReview?.[key]?.scoreOptions || [3, 0];
+                            const cnt = gradeForReview?.[key]?.count || 3;
+                            return opts[0] * cnt;
+                        };
+                        const maxTotal = roundsForReview.reduce((sum, key) => sum + calcMaxScore(key), 0);
+                        
                         const roundNames = { recognition: '认一认', imageSelect: '识图选一', discrimination: '辨一辨', expression: '说一说' };
                         
                         const isCorrectForRound = (key) => {
-                            const scores = currentScores[key] || [];
-                            const options = selectedGrade?.[key]?.scoreOptions || [3, 0];
-                            const maxScore = options[0];
+                            const scores = detail[key] || [];
+                            const opts = gradeForReview?.[key]?.scoreOptions || [3, 0];
+                            const maxScore = opts[0];
                             return scores.map(s => s >= maxScore);
                         };
                         
                         const renderRoundResult = (key) => {
-                            const scores = currentScores[key] || [];
-                            const maxScore = (selectedGrade?.[key]?.scoreOptions || [3, 0])[0];
+                            const scores = detail[key] || [];
+                            const opts = gradeForReview?.[key]?.scoreOptions || [3, 0];
+                            const maxScore = opts[0];
                             const correctArr = isCorrectForRound(key);
-                            const totalScore = getRoundScore(key);
+                            const roundTotal = calcRoundScore(key);
                             const correctCount = correctArr.filter(Boolean).length;
+                            
+                            if (scores.length === 0) return null;
                             
                             return (
                                 <div style={{marginBottom: '20px', padding: '15px', background: '#f8f9fa', borderRadius: '15px'}}>
@@ -1164,8 +1185,8 @@
                                         ))}
                                     </div>
                                     <div style={{fontSize: '14px', color: '#666'}}>
-                                        <span style={{color: totalScore > 0 ? '#28a745' : '#dc3545'}}>
-                                            得分：{totalScore}分（{correctCount}/{scores.length}题正确）
+                                        <span style={{color: roundTotal > 0 ? '#28a745' : '#dc3545'}}>
+                                            得分：{roundTotal}分（{correctCount}/{scores.length}题正确）
                                         </span>
                                     </div>
                                 </div>
@@ -1178,6 +1199,29 @@
                                 <div className="card">
                                     <div className="text-center">
                                         <p style={{fontSize: '24px', marginBottom: '10px'}}>👤 {reviewResult.student}</p>
+                                        <p style={{fontSize: '18px', color: '#666'}}>{reviewResult.date} 答题结果</p>
+                                    </div>
+                                    
+                                    <div style={{marginTop: '20px'}}>
+                                        {roundsForReview.map(key => renderRoundResult(key))}
+                                    </div>
+                                    
+                                    <div className="result-total">
+                                        总分：{total} / {maxTotal} 分
+                                    </div>
+                                    
+                                    <div className="text-center">
+                                        <button className="btn btn-secondary btn-large" onClick={() => { setReviewResult(null); setScreen('stats'); }}>
+                                            返回统计
+                                        </button>
+                                        <button className="btn btn-secondary" onClick={goHome}>
+                                            返回首页
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    }
                                         <p style={{fontSize: '18px', color: '#666'}}>{reviewResult.date} 答题结果</p>
                                     </div>
                                     
