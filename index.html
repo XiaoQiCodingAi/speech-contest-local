@@ -351,8 +351,9 @@
             const getGradeRounds = () => {
                 if (!selectedGrade) return [];
                 const rounds = [];
+                // 只有无语言(id=3)才包含识图选一
+                if (selectedGrade.id === '3' && (selectedGrade.imageSelect?.count || 0) > 0) rounds.push('imageSelect');
                 if ((selectedGrade.recognition?.count || 0) > 0) rounds.push('recognition');
-                if ((selectedGrade.imageSelect?.count || 0) > 0) rounds.push('imageSelect');
                 if ((selectedGrade.discrimination?.count || 0) > 0) rounds.push('discrimination');
                 if ((selectedGrade.expression?.count || 0) > 0) rounds.push('expression');
                 return rounds;
@@ -705,11 +706,26 @@
             // 计算各环节最高分
             const getMaxScores = () => {
                 if (!selectedGrade) return { r: 9, d: 9, e: 9, s: 9 };
-                const rMax = (selectedGrade.recognition?.scoreOptions || [3,2,1,0])[0] * (selectedGrade.recognition?.count || 3);
-                const sMax = (selectedGrade.imageSelect?.scoreOptions || [3,0])[0] * (selectedGrade.imageSelect?.count || 3);
-                const dMax = (selectedGrade.discrimination?.scoreOptions || [3,0])[0] * (selectedGrade.discrimination?.count || 3);
-                const eMax = (selectedGrade.expression?.scoreOptions || [3,2,1,0])[0] * (selectedGrade.expression?.count || 3);
-                return { r: rMax, s: sMax, d: dMax, e: eMax, total: rMax + sMax + dMax + eMax };
+                const rounds = getGradeRounds();
+                let total = 0;
+                let scores = {};
+                if (rounds.includes('recognition')) {
+                    scores.r = (selectedGrade.recognition?.scoreOptions || [3,2,1,0])[0] * (selectedGrade.recognition?.count || 3);
+                    total += scores.r;
+                }
+                if (rounds.includes('imageSelect')) {
+                    scores.s = (selectedGrade.imageSelect?.scoreOptions || [3,0])[0] * (selectedGrade.imageSelect?.count || 3);
+                    total += scores.s;
+                }
+                if (rounds.includes('discrimination')) {
+                    scores.d = (selectedGrade.discrimination?.scoreOptions || [3,0])[0] * (selectedGrade.discrimination?.count || 3);
+                    total += scores.d;
+                }
+                if (rounds.includes('expression')) {
+                    scores.e = (selectedGrade.expression?.scoreOptions || [3,2,1,0])[0] * (selectedGrade.expression?.count || 3);
+                    total += scores.e;
+                }
+                return { ...scores, total };
             };
             
             // 下一位学生
