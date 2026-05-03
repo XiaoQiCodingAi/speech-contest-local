@@ -678,6 +678,7 @@
                 const wrongScore = scoreOptions.length > 1 ? scoreOptions[scoreOptions.length - 1] : 0;
                 const earnedScore = isCorrect ? correctScore : wrongScore;
                 
+                showFeedback(isCorrect, earnedScore);
                 handleScore(earnedScore, 's');
             };
             
