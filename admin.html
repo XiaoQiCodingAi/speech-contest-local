@@ -416,6 +416,9 @@
                     } else if (field === 'smallImages') {
                         const currentImages = selectedGrade.discrimination?.smallImages || [];
                         updateGrade('discrimination', { ...selectedGrade.discrimination, smallImages: [...currentImages, ...newImages] });
+                    } else if (field === 'imageSelect') {
+                        const currentImages = selectedGrade.imageSelect?.images || [];
+                        updateGrade('imageSelect', { ...selectedGrade.imageSelect, images: [...currentImages, ...newImages] });
                     }
                 }).catch(err => {
                     setUploading(false);
