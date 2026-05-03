@@ -320,7 +320,7 @@
         ];
         
         function App() {
-            const [screen, setScreen] = useState('home'); // home, select-grade, random, game, result, stats
+            const [screen, setScreen] = useState('home'); // home, select-grade, random, game, result, stats, review
             const [grades, setGrades] = useState([]);
             const [selectedGrade, setSelectedGrade] = useState(null);
             const [currentRound, setCurrentRound] = useState(0); // 环节索引，根据年级动态变化
@@ -332,6 +332,7 @@
             const [feedback, setFeedback] = useState({ show: false, correct: null, message: '' });
             const [tempName, setTempName] = useState(''); // 临时点名
             const [rolling, setRolling] = useState(false);
+            const [reviewResult, setReviewResult] = useState(null); // 复盘用的成绩记录
             
             // 当前环节图片
             const [currentImages, setCurrentImages] = useState([]);
@@ -365,6 +366,16 @@
                 if (screen === 'game' && selectedGrade) {
                     console.log('调用prepareRound');
                     prepareRound();
+                }
+                // 复盘模式下，设置currentScores为记录的详情
+                if (screen === 'review' && reviewResult && reviewResult.scoresDetail) {
+                    setCurrentScores(reviewResult.scoresDetail);
+                    // 根据记录恢复selectedGrade（如果有保存年段信息）
+                    if (!selectedGrade && grades.length > 0) {
+                        // 尝试通过学生姓名匹配年级
+                        const matched = grades.find(g => g.students?.some(s => s.name === reviewResult.student));
+                        if (matched) setSelectedGrade(matched);
+                    }
                 }
             }, [screen, currentRound, currentQuestionIndex]);
             
@@ -686,12 +697,14 @@
             // 完成游戏
             const finishGame = (scores) => {
                 const rTotal = (scores.r || []).reduce((a, b) => a + b, 0);
+                const sTotal = (scores.s || []).reduce((a, b) => a + b, 0);
                 const dTotal = (scores.d || []).reduce((a, b) => a + b, 0);
                 const eTotal = (scores.e || []).reduce((a, b) => a + b, 0);
-                const total = rTotal + dTotal + eTotal;
+                const total = rTotal + sTotal + dTotal + eTotal;
                 const newResult = {
                     student: currentStudent,
-                    scores: { r: rTotal, d: dTotal, e: eTotal },
+                    scores: { r: rTotal, s: sTotal, d: dTotal, e: eTotal },
+                    scoresDetail: scores, // 存储每题分数详情，用于复盘
                     total: total,
                     date: new Date().toLocaleDateString()
                 };
@@ -1074,7 +1087,7 @@
                                     ) : (
                                         <div className="stats-list">
                                             {results.map((result, index) => (
-                                                <div key={index} className="stats-item">
+                                                <div key={index} className="stats-item" onClick={() => { setReviewResult(result); setScreen('review'); }} style={{cursor: 'pointer'}}>
                                                     <div>
                                                         <div className="name">{result.student}</div>
                                                         <div style={{fontSize: '12px', color: '#999'}}>{result.date}</div>
@@ -1091,6 +1104,88 @@
                                 </div>
                             </div>
                         );
+                    
+                    case 'review': {
+                        if (!reviewResult) {
+                            setScreen('stats');
+                            return null;
+                        }
+                        const rounds = getGradeRounds();
+                        const maxScores = getMaxScores();
+                        const total = getRoundScore('r') + getRoundScore('s') + getRoundScore('d') + getRoundScore('e');
+                        const roundNames = { recognition: '认一认', imageSelect: '识图选一', discrimination: '辨一辨', expression: '说一说' };
+                        
+                        const isCorrectForRound = (key) => {
+                            const scores = currentScores[key] || [];
+                            const options = selectedGrade?.[key]?.scoreOptions || [3, 0];
+                            const maxScore = options[0];
+                            return scores.map(s => s >= maxScore);
+                        };
+                        
+                        const renderRoundResult = (key) => {
+                            const scores = currentScores[key] || [];
+                            const maxScore = (selectedGrade?.[key]?.scoreOptions || [3, 0])[0];
+                            const correctArr = isCorrectForRound(key);
+                            const totalScore = getRoundScore(key);
+                            const correctCount = correctArr.filter(Boolean).length;
+                            
+                            return (
+                                <div style={{marginBottom: '20px', padding: '15px', background: '#f8f9fa', borderRadius: '15px'}}>
+                                    <div style={{fontSize: '16px', fontWeight: 'bold', color: '#333', marginBottom: '10px'}}>
+                                        {roundNames[key]}
+                                    </div>
+                                    <div style={{display: 'flex', gap: '8px', marginBottom: '10px', flexWrap: 'wrap'}}>
+                                        {scores.map((score, idx) => (
+                                            <div key={idx} style={{
+                                                width: '36px', height: '36px', borderRadius: '50%',
+                                                background: correctArr[idx] ? '#d4edda' : '#f8d7da',
+                                                border: `2px solid ${correctArr[idx] ? '#28a745' : '#dc3545'}`,
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                fontSize: '18px', fontWeight: 'bold',
+                                                color: correctArr[idx] ? '#28a745' : '#dc3545'
+                                            }}>
+                                                {correctArr[idx] ? '●' : '×'}
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div style={{fontSize: '14px', color: '#666'}}>
+                                        <span style={{color: totalScore > 0 ? '#28a745' : '#dc3545'}}>
+                                            得分：{totalScore}分（{correctCount}/{scores.length}题正确）
+                                        </span>
+                                    </div>
+                                </div>
+                            );
+                        };
+                        
+                        return (
+                            <div className="container">
+                                <h1 className="page-title">📋 答题复盘</h1>
+                                <div className="card">
+                                    <div className="text-center">
+                                        <p style={{fontSize: '24px', marginBottom: '10px'}}>👤 {reviewResult.student}</p>
+                                        <p style={{fontSize: '18px', color: '#666'}}>{reviewResult.date} 答题结果</p>
+                                    </div>
+                                    
+                                    <div style={{marginTop: '20px'}}>
+                                        {rounds.map(key => renderRoundResult(key))}
+                                    </div>
+                                    
+                                    <div className="result-total">
+                                        总分：{total} / {maxScores.total} 分
+                                    </div>
+                                    
+                                    <div className="text-center">
+                                        <button className="btn btn-secondary btn-large" onClick={() => { setReviewResult(null); setScreen('stats'); }}>
+                                            返回统计
+                                        </button>
+                                        <button className="btn btn-secondary" onClick={goHome}>
+                                            返回首页
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    }
                     
                     default:
                         return null;
