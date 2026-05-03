@@ -1007,7 +1007,7 @@
                             const scores = currentScores[sk] || [];
                             const maxScore = (selectedGrade?.[key]?.scoreOptions || [3, 0])[0];
                             const correctArr = isCorrectForRound(key);
-                            const totalScore = getRoundScore(key);
+                            const totalScore = getRoundScore(sk);
                             const correctCount = correctArr.filter(Boolean).length;
                             const isImageRound = key === 'imageSelect' || key === 'discrimination';
                             
