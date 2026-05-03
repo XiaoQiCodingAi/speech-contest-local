@@ -572,13 +572,13 @@
                                     />
                                 </div>
                                 <div className="form-group">
-                                    <label className="form-label">分数选项（逗号分隔，如 3,2,1,0）</label>
+                                    <label className="form-label">分数选项（空格分隔，如 3 2 1 0）</label>
                                     <input 
                                         type="text" 
                                         className="form-input"
-                                        value={(selectedGrade?.recognition?.scoreOptions || [3,2,1,0]).join(',')}
+                                        value={(selectedGrade?.recognition?.scoreOptions || [3,2,1,0]).join(' ')}
                                         onChange={(e) => {
-                                            const vals = e.target.value.split(',').map(v => parseInt(v.trim())).filter(v => !isNaN(v));
+                                            const vals = e.target.value.split(' ').map(v => parseInt(v.trim())).filter(v => !isNaN(v));
                                             if (vals.length > 0) {
                                                 updateGrade('recognition', { ...selectedGrade.recognition, scoreOptions: vals });
                                             }
@@ -627,13 +627,13 @@
                                     />
                                 </div>
                                 <div className="form-group">
-                                    <label className="form-label">分数选项（逗号分隔，如 3,2,1,0）</label>
+                                    <label className="form-label">分数选项（空格分隔，如 3 2 1 0）</label>
                                     <input 
                                         type="text" 
                                         className="form-input"
-                                        value={(selectedGrade?.discrimination?.scoreOptions || [3,0]).join(',')}
+                                        value={(selectedGrade?.discrimination?.scoreOptions || [3,0]).join(' ')}
                                         onChange={(e) => {
-                                            const vals = e.target.value.split(',').map(v => parseInt(v.trim())).filter(v => !isNaN(v));
+                                            const vals = e.target.value.split(' ').map(v => parseInt(v.trim())).filter(v => !isNaN(v));
                                             if (vals.length > 0) {
                                                 updateGrade('discrimination', { ...selectedGrade.discrimination, scoreOptions: vals });
                                             }
@@ -784,13 +784,13 @@
                                     />
                                 </div>
                                 <div className="form-group">
-                                    <label className="form-label">分数选项（逗号分隔，如 3,2,1,0）</label>
+                                    <label className="form-label">分数选项（空格分隔，如 3 2 1 0）</label>
                                     <input 
                                         type="text" 
                                         className="form-input"
-                                        value={(selectedGrade?.expression?.scoreOptions || [3,2,1,0]).join(',')}
+                                        value={(selectedGrade?.expression?.scoreOptions || [3,2,1,0]).join(' ')}
                                         onChange={(e) => {
-                                            const vals = e.target.value.split(',').map(v => parseInt(v.trim())).filter(v => !isNaN(v));
+                                            const vals = e.target.value.split(' ').map(v => parseInt(v.trim())).filter(v => !isNaN(v));
                                             if (vals.length > 0) {
                                                 updateGrade('expression', { ...selectedGrade.expression, scoreOptions: vals });
                                             }
@@ -840,13 +840,13 @@
                                     />
                                 </div>
                                 <div className="form-group">
-                                    <label className="form-label">分数选项（逗号分隔，如 3,0 或 4,2,0）</label>
+                                    <label className="form-label">分数选项（空格分隔，如 3 0 或 4 2 0）</label>
                                     <input 
                                         type="text" 
                                         className="form-input"
-                                        value={(selectedGrade?.imageSelect?.scoreOptions || [3,0]).join(',')}
+                                        value={(selectedGrade?.imageSelect?.scoreOptions || [3,0]).join(' ')}
                                         onChange={(e) => {
-                                            const vals = e.target.value.split(',').map(v => parseInt(v.trim())).filter(v => !isNaN(v));
+                                            const vals = e.target.value.split(' ').map(v => parseInt(v.trim())).filter(v => !isNaN(v));
                                             if (vals.length > 0) {
                                                 updateGrade('imageSelect', { ...selectedGrade.imageSelect, scoreOptions: vals });
                                             }
