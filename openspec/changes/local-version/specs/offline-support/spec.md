@@ -2,37 +2,32 @@
 
 ## ADDED Requirements
 
-### Requirement: Service Worker 缓存所有资源
-The system SHALL register a Service Worker that caches admin.html, index.html, and all embedded JavaScript/CSS. Once loaded once, the application SHALL work fully offline.
+### Requirement: 数据持久化通过 IndexedDB 实现
+The system SHALL use IndexedDB as the primary mechanism for offline data persistence. All grades, students, images, and results SHALL be stored in IndexedDB and SHALL survive browser restarts without network access.
 
-### Requirement: 缓存策略
-The Service Worker caching strategy SHALL be:
-- **Cache First**: admin.html, index.html, and any local static assets
-- **Network First** (fallback to cache): For any future external resources if added
+### Requirement: 首次加载后数据保留
+After the initial page load, all user data (grades, uploaded images, student lists, game results) SHALL be retrievable from IndexedDB even when the browser is offline.
 
-### Requirement: 离线状态提示
-When the browser is offline and user attempts to use the system, the system SHALL display a message indicating the application works offline and all previously used data is available locally.
+### Requirement: 无 Service Worker
+The system SHALL NOT implement Service Worker caching. Instead, offline functionality is achieved through local data persistence in IndexedDB. Users need network only for the first page load.
 
-### Requirement: 缓存更新机制
-When a new version of the application is served (detected via cache version), the system SHALL:
-1. Continue serving the cached version for current session
-2. Update the cache in the background
-3. Notify the user on next visit that a new version is available
+### Requirement: config.json 迁移能力
+When moving to a new computer, the user SHALL copy admin.html, index.html, and config.json to the same directory. Opening admin.html SHALL prompt to load the config.json, restoring all data without network dependency.
 
 ---
 
-#### Scenario: User opens app after initial load
-- **WHEN** user opens admin.html or index.html after the first visit
-- **THEN** the Service Worker serves the cached version and the app loads instantly without network
+#### Scenario: User opens app after first load on same computer
+- **WHEN** user opens index.html or admin.html after the first visit on the same computer
+- **THEN** all previously uploaded data (grades, images, results) is available from IndexedDB without network
 
-#### Scenario: User uses app with no network connection
-- **WHEN** user opens the app while completely offline
-- **THEN** the Service Worker intercepts the request and serves cached content; images and all functionality remain available
+#### Scenario: User moves to new computer with config.json
+- **WHEN** user copies HTML files and config.json to a new computer and opens admin.html
+- **THEN** the app prompts to load config.json and restores all data from the local JSON file
 
-#### Scenario: New version becomes available
-- **WHEN** developer updates admin.html or index.html on the server
-- **THEN** Service Worker detects this, updates cache in background, and on next session user gets the new version
+#### Scenario: Browser is closed and reopened
+- **WHEN** user closes and reopens the browser (or restarts computer)
+- **THEN** all game results, grade configurations, and uploaded images remain in IndexedDB and are available on next visit
 
-#### Scenario: Offline user sees status
-- **WHEN** offline user loads the page
-- **THEN** a small indicator shows "离线模式 - 所有功能可用"
+---
+
+*Note: Service Worker was evaluated but not implemented. IndexedDB persistence combined with config.json export/import provides sufficient offline capability for the target use case (school campus network environment).*
