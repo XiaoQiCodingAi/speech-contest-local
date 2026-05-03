@@ -703,6 +703,8 @@
                 const total = rTotal + sTotal + dTotal + eTotal;
                 const newResult = {
                     student: currentStudent,
+                    gradeId: selectedGrade?.id,
+                    gradeName: selectedGrade?.name,
                     scores: { r: rTotal, s: sTotal, d: dTotal, e: eTotal },
                     scoresDetail: scores, // 存储每题分数详情，用于复盘
                     total: total,
@@ -1078,6 +1080,14 @@
                     }
                     
                     case 'stats':
+                        // 按年级分组
+                        const groupedResults = results.reduce((acc, result) => {
+                            const gradeName = result.gradeName || '未知年段';
+                            if (!acc[gradeName]) acc[gradeName] = [];
+                            acc[gradeName].push(result);
+                            return acc;
+                        }, {});
+                        
                         return (
                             <div className="container">
                                 <h1 className="page-title">📊 结果统计</h1>
@@ -1085,17 +1095,22 @@
                                     {results.length === 0 ? (
                                         <div className="empty-state">暂无成绩记录</div>
                                     ) : (
-                                        <div className="stats-list">
-                                            {results.map((result, index) => (
-                                                <div key={index} className="stats-item" onClick={() => { setReviewResult(result); setScreen('review'); }} style={{cursor: 'pointer'}}>
-                                                    <div>
-                                                        <div className="name">{result.student}</div>
-                                                        <div style={{fontSize: '12px', color: '#999'}}>{result.date}</div>
-                                                    </div>
-                                                    <div className="score">{result.total}分</div>
+                                        Object.entries(groupedResults).map(([gradeName, gradeResults]) => (
+                                            <div key={gradeName} style={{marginBottom: '20px'}}>
+                                                <div style={{fontSize: '16px', fontWeight: 'bold', color: '#ff6b6b', marginBottom: '10px', paddingBottom: '5px', borderBottom: '2px solid #ff6b6b'}}>
+                                                    {gradeName}（{gradeResults.length}人）
                                                 </div>
-                                            ))}
-                                        </div>
+                                                {gradeResults.map((result, index) => (
+                                                    <div key={index} className="stats-item" onClick={() => { setReviewResult(result); setScreen('review'); }} style={{cursor: 'pointer'}}>
+                                                        <div>
+                                                            <div className="name">{result.student}</div>
+                                                            <div style={{fontSize: '12px', color: '#999'}}>{result.date}</div>
+                                                        </div>
+                                                        <div className="score">{result.total}分</div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ))
                                     )}
                                 </div>
                                 <div className="text-center">
