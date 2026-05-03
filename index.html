@@ -344,7 +344,8 @@
             // 识图选一专用状态
             const [imageSelectPair, setImageSelectPair] = useState([]); // 当前左右两张图片
             const [imageSelectCorrect, setImageSelectCorrect] = useState(null); // 正确答案索引 (0或1)
-            const [usedImageSelectIds, setUsedImageSelectIds] = useState(new Set()); // 已用图片ID集合（去重）
+            const [imageSelectTarget, setImageSelectTarget] = useState(null); // 当前题目label
+            const [usedImageSelectLabels, setUsedImageSelectLabels] = useState(new Set()); // 已用label集合（去重）
             
             const rollInterval = useRef(null);
             
@@ -456,9 +457,10 @@
                 setSelectedOption(null);
                 setCorrectOptionIndex(null);
                 setIsTransitioning(false);
-                setUsedImageSelectIds(new Set());
+                setUsedImageSelectLabels(new Set());
                 setImageSelectPair([]);
                 setImageSelectCorrect(null);
+                setImageSelectTarget(null);
                 // prepareRound will be called by useEffect when screen changes
                 setScreen('game');
             };
@@ -493,24 +495,49 @@
                     setCorrectOptionIndex(null);
                     
                 } else if (currentRoundKey === 'imageSelect') {
-                    // 识图选一
+                    // 识图选一：按label分组抽题
                     const allImgs = selectedGrade.imageSelect?.images || [];
-                    const availableImgs = allImgs.filter(img => !usedImageSelectIds.has(img.id));
+                    // 只使用有label的图片
+                    const labeledImgs = allImgs.filter(img => img.label && img.label.trim());
                     
-                    if (availableImgs.length < 2) {
-                        alert('识图选一图片不足，请上传更多图片');
+                    if (labeledImgs.length < 2) {
+                        alert('识图选一需要至少2张设置了label的图片');
                         return;
                     }
                     
-                    // 随机选2张不重复的图片
-                    const shuffled = [...availableImgs].sort(() => Math.random() - 0.5);
-                    const img1 = shuffled[0];
-                    const img2 = shuffled[1];
+                    // 按label分组
+                    const labelMap = {};
+                    labeledImgs.forEach(img => {
+                        if (!labelMap[img.label]) labelMap[img.label] = [];
+                        labelMap[img.label].push(img);
+                    });
+                    const availableLabels = Object.keys(labelMap).filter(l => !usedImageSelectLabels.has(l));
                     
-                    setImageSelectPair([img1, img2]);
-                    // 随机决定哪张是正确答案
-                    const correctIdx = Math.random() < 0.5 ? 0 : 1;
+                    if (availableLabels.length === 0) {
+                        // 所有label都用过了，重置
+                        setUsedImageSelectLabels(new Set());
+                        return prepareRound();
+                    }
+                    
+                    // 随机选一个label作为题目
+                    const targetLabel = availableLabels[Math.floor(Math.random() * availableLabels.length)];
+                    const targetImgs = labelMap[targetLabel];
+                    
+                    // 从目标label中随机选1张作正确答案
+                    const correctImg = targetImgs[Math.floor(Math.random() * targetImgs.length)];
+                    
+                    // 从其他label中随机选1张作干扰项
+                    const otherLabels = Object.keys(labelMap).filter(l => l !== targetLabel);
+                    const otherLabel = otherLabels[Math.floor(Math.random() * otherLabels.length)];
+                    const wrongImg = labelMap[otherLabel][Math.floor(Math.random() * labelMap[otherLabel].length)];
+                    
+                    // 随机排列两张图
+                    const pair = Math.random() < 0.5 ? [correctImg, wrongImg] : [wrongImg, correctImg];
+                    const correctIdx = pair[0].id === correctImg.id ? 0 : 1;
+                    
+                    setImageSelectPair(pair);
                     setImageSelectCorrect(correctIdx);
+                    setImageSelectTarget(targetLabel);
                     setCurrentImages([]);
                     setDiscriminationOptions([]);
                     setCorrectOptionIndex(null);
@@ -654,12 +681,11 @@
                 const currentRoundKey = rounds[currentRound];
                 const roundCount = selectedGrade?[currentRoundKey]?.count || 3;
                 
-                // 识图选一：记录已用图片
-                if (currentRoundKey === 'imageSelect' && imageSelectPair.length === 2) {
-                    const newUsed = new Set(usedImageSelectIds);
-                    newUsed.add(imageSelectPair[0].id);
-                    newUsed.add(imageSelectPair[1].id);
-                    setUsedImageSelectIds(newUsed);
+                // 识图选一：记录已用label
+                if (currentRoundKey === 'imageSelect' && imageSelectTarget) {
+                    const newUsed = new Set(usedImageSelectLabels);
+                    newUsed.add(imageSelectTarget);
+                    setUsedImageSelectLabels(newUsed);
                 }
                 
                 // 检查是否完成当前环节所有题目
@@ -749,7 +775,7 @@
                 setCurrentScores({ r: [], d: [], e: [], s: [] });
                 setCurrentRound(0);
                 setCurrentQuestionIndex(0);
-                setUsedImageSelectIds(new Set());
+                setUsedImageSelectLabels(new Set());
                 setImageSelectPair([]);
                 setScreen('random');
             };
@@ -897,8 +923,8 @@
                                     {/* 识图选一 */}
                                     {currentRoundKey === 'imageSelect' && (
                                         <div>
-                                            <p className="text-center" style={{marginBottom: '20px', fontSize: '20px'}}>
-                                                请选择正确的图片
+                                            <p className="text-center" style={{marginBottom: '20px', fontSize: '24px', fontWeight: 'bold', color: '#ff6b6b'}}>
+                                                哪个是【{imageSelectTarget}】
                                             </p>
                                             <div style={{display: 'flex', justifyContent: 'center', gap: '30px', marginTop: '20px'}}>
                                                 {imageSelectPair.length === 2 ? (
