@@ -193,18 +193,18 @@
                 name: '中低年段',
                 subtitle: '好吃的水果',
                 students: [],
-                recognition: { images: [], count: 3 },
-                discrimination: { bigImages: [], smallImages: [], count: 3 },
-                expression: { images: [], count: 3 }
+                recognition: { images: [], count: 3, scoreOptions: [3, 2, 1, 0] },
+                discrimination: { bigImages: [], smallImages: [], count: 3, scoreOptions: [3, 0] },
+                expression: { images: [], count: 3, scoreOptions: [3, 2, 1, 0] }
             },
             {
                 id: '2',
                 name: '高年段',
                 subtitle: '我们的住房',
                 students: [],
-                recognition: { images: [], count: 3 },
-                discrimination: { bigImages: [], smallImages: [], count: 3 },
-                expression: { images: [], count: 3 }
+                recognition: { images: [], count: 3, scoreOptions: [3, 2, 1, 0] },
+                discrimination: { bigImages: [], smallImages: [], count: 3, scoreOptions: [3, 0] },
+                expression: { images: [], count: 3, scoreOptions: [3, 2, 1, 0] }
             }
         ];
         
@@ -563,6 +563,20 @@
                                         }}
                                     />
                                 </div>
+                                <div className="form-group">
+                                    <label className="form-label">分数选项（逗号分隔，如 3,2,1,0）</label>
+                                    <input 
+                                        type="text" 
+                                        className="form-input"
+                                        value={(selectedGrade?.recognition?.scoreOptions || [3,2,1,0]).join(',')}
+                                        onChange={(e) => {
+                                            const vals = e.target.value.split(',').map(v => parseInt(v.trim())).filter(v => !isNaN(v));
+                                            if (vals.length > 0) {
+                                                updateGrade('recognition', { ...selectedGrade.recognition, scoreOptions: vals });
+                                            }
+                                        }}
+                                    />
+                                </div>
                                 <div className="upload-area" onClick={() => document.getElementById('recognition-upload').click()}>
                                     <p>点击上传图片（可多选）</p>
                                     <p style={{fontSize: '12px', color: '#999'}}>支持 jpg、png、gif 等格式</p>
@@ -600,6 +614,20 @@
                                             const val = parseInt(e.target.value);
                                             if (!isNaN(val) && val >= 1 && val <= 20) {
                                                 updateGrade('discrimination', { ...selectedGrade.discrimination, count: val });
+                                            }
+                                        }}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">分数选项（逗号分隔，如 3,2,1,0）</label>
+                                    <input 
+                                        type="text" 
+                                        className="form-input"
+                                        value={(selectedGrade?.discrimination?.scoreOptions || [3,0]).join(',')}
+                                        onChange={(e) => {
+                                            const vals = e.target.value.split(',').map(v => parseInt(v.trim())).filter(v => !isNaN(v));
+                                            if (vals.length > 0) {
+                                                updateGrade('discrimination', { ...selectedGrade.discrimination, scoreOptions: vals });
                                             }
                                         }}
                                     />
@@ -747,6 +775,20 @@
                                         }}
                                     />
                                 </div>
+                                <div className="form-group">
+                                    <label className="form-label">分数选项（逗号分隔，如 3,2,1,0）</label>
+                                    <input 
+                                        type="text" 
+                                        className="form-input"
+                                        value={(selectedGrade?.expression?.scoreOptions || [3,2,1,0]).join(',')}
+                                        onChange={(e) => {
+                                            const vals = e.target.value.split(',').map(v => parseInt(v.trim())).filter(v => !isNaN(v));
+                                            if (vals.length > 0) {
+                                                updateGrade('expression', { ...selectedGrade.expression, scoreOptions: vals });
+                                            }
+                                        }}
+                                    />
+                                </div>
                                 <div className="upload-area" onClick={() => document.getElementById('expression-upload').click()}>
                                     <p>点击上传图片（可多选）</p>
                                     <p style={{fontSize: '12px', color: '#999'}}>支持 jpg、png、gif 等格式</p>
@@ -814,7 +856,7 @@
                         </div>
                         <div className="config-item">
                             <span>认一认图片</span>
-                            <span>{selectedGrade?.recognition?.images?.length || 0} 张</span>
+                            <span>{selectedGrade?.recognition?.images?.length || 0} 张 / 分数选项 {selectedGrade?.recognition?.scoreOptions?.join(', ') || '3,2,1,0'}</span>
                         </div>
                         <div className="config-item">
                             <span>辨一辨大图</span>
@@ -828,8 +870,12 @@
                             </span>
                         </div>
                         <div className="config-item">
+                            <span>辨一辨分数</span>
+                            <span>{selectedGrade?.discrimination?.scoreOptions?.join(', ') || '3,0'}</span>
+                        </div>
+                        <div className="config-item">
                             <span>说一说图片</span>
-                            <span>{selectedGrade?.expression?.images?.length || 0} 张</span>
+                            <span>{selectedGrade?.expression?.images?.length || 0} 张 / 分数选项 {selectedGrade?.expression?.scoreOptions?.join(', ') || '3,2,1,0'}</span>
                         </div>
                         <div className="config-item">
                             <span>学生人数</span>

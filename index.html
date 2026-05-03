@@ -545,11 +545,17 @@
                 setSelectedOption(index);
                 const isCorrect = index === correctOptionIndex;
                 
-                const newScores = { ...currentScores, d: [...(currentScores.d || []), isCorrect ? 3 : 0] };
+                // 根据配置的分数选项计算分数
+                const scoreOptions = selectedGrade?.discrimination?.scoreOptions || [3, 0];
+                const correctScore = scoreOptions[0];
+                const wrongScore = scoreOptions.length > 1 ? scoreOptions[scoreOptions.length - 1] : 0;
+                const earnedScore = isCorrect ? correctScore : wrongScore;
+                
+                const newScores = { ...currentScores, d: [...(currentScores.d || []), earnedScore] };
                 setCurrentScores(newScores);
                 
                 // 显示反馈
-                showFeedback(isCorrect);
+                showFeedback(isCorrect, earnedScore);
                 
                 // 3秒后进入下一题或下一环节
                 const roundCount = selectedGrade?.discrimination?.count || 3;
@@ -575,11 +581,11 @@
             };
             
             // 显示反馈
-            const showFeedback = (correct) => {
+            const showFeedback = (correct, earnedScore = correct ? 3 : 0) => {
                 setFeedback({
                     show: true,
                     correct,
-                    message: correct ? '正确！+3分' : '错误！'
+                    message: correct ? `正确！+${earnedScore}分` : `错误！+${earnedScore}分`
                 });
                 setTimeout(() => {
                     setFeedback({ show: false, correct: null, message: '' });
@@ -629,6 +635,15 @@
                 const newResults = [...results, newResult];
                 saveResults(newResults);
                 setScreen('result');
+            };
+            
+            // 计算各环节最高分
+            const getMaxScores = () => {
+                if (!selectedGrade) return { r: 9, d: 9, e: 9 };
+                const rMax = (selectedGrade.recognition?.scoreOptions || [3,2,1,0])[0] * (selectedGrade.recognition?.count || 3);
+                const dMax = (selectedGrade.discrimination?.scoreOptions || [3,0])[0] * (selectedGrade.discrimination?.count || 3);
+                const eMax = (selectedGrade.expression?.scoreOptions || [3,2,1,0])[0] * (selectedGrade.expression?.count || 3);
+                return { r: rMax, d: dMax, e: eMax, total: rMax + dMax + eMax };
             };
             
             // 下一位学生
@@ -769,10 +784,9 @@
                                                 {currentRound === 0 ? '请说出这个物品的名称' : '请描述这张图片'}
                                             </p>
                                             <div className="text-center">
-                                                <button className="btn score-btn score-3" onClick={() => handleScore(3)}>3分</button>
-                                                <button className="btn score-btn score-2" onClick={() => handleScore(2)}>2分</button>
-                                                <button className="btn score-btn score-1" onClick={() => handleScore(1)}>1分</button>
-                                                <button className="btn score-btn score-0" onClick={() => handleScore(0)}>0分</button>
+                                                {(currentRound === 0 ? selectedGrade?.recognition?.scoreOptions : selectedGrade?.expression?.scoreOptions) || [3, 2, 1, 0]).map((score, idx) => (
+                                                    <button key={idx} className={`btn score-btn score-${score}`} onClick={() => handleScore(score)}>{score}分</button>
+                                                ))}
                                             </div>
                                         </div>
                                     )}
@@ -841,7 +855,7 @@
                                     </div>
                                     
                                     <div className="result-total">
-                                        总分：{total} / 9 分
+                                        总分：{total} / {getMaxScores().total} 分
                                     </div>
                                     
                                     <div className="text-center">
