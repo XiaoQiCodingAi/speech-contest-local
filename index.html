@@ -703,7 +703,7 @@
                 const newResult = {
                     student: currentStudent,
                     gradeId: selectedGrade?.id,
-                    gradeName: selectedGrade?.name,
+                    gradeName: selectedGrade?.name || (selectedGrade?.id === '1' ? '中低年段' : selectedGrade?.id === '2' ? '高年段' : '无语言'),
                     scores: { r: rTotal, s: sTotal, d: dTotal, e: eTotal },
                     scoresDetail: scores, // 存储每题分数详情，用于复盘
                     total: total,
@@ -991,17 +991,20 @@
                         
                         // 获取环节名称
                         const roundNames = { recognition: '认一认', imageSelect: '识图选一', discrimination: '辨一辨', expression: '说一说' };
+                        const scoreKeyMap = { recognition: 'r', imageSelect: 's', discrimination: 'd', expression: 'e' };
                         
                         // 判断某题是否正确（根据分数判断：得最高分算对）
                         const isCorrectForRound = (key) => {
-                            const scores = currentScores[key] || [];
+                            const sk = scoreKeyMap[key];
+                            const scores = currentScores[sk] || [];
                             const options = selectedGrade?.[key]?.scoreOptions || [3, 0];
                             const maxScore = options[0];
                             return scores.map(s => s >= maxScore);
                         };
                         
                         const renderRoundResult = (key) => {
-                            const scores = currentScores[key] || [];
+                            const sk = scoreKeyMap[key];
+                            const scores = currentScores[sk] || [];
                             const maxScore = (selectedGrade?.[key]?.scoreOptions || [3, 0])[0];
                             const correctArr = isCorrectForRound(key);
                             const totalScore = getRoundScore(key);
@@ -1081,7 +1084,7 @@
                     case 'stats':
                         // 按年级分组
                         const groupedResults = results.reduce((acc, result) => {
-                            const gradeName = result.gradeName || '未知年段';
+                            const gradeName = result.gradeName || (result.scores && result.scores.r !== undefined ? '中低年段' : '未知年段');
                             if (!acc[gradeName]) acc[gradeName] = [];
                             acc[gradeName].push(result);
                             return acc;
