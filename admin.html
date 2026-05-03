@@ -489,38 +489,28 @@
                 </div>
             );
             
-            const renderEditPage = () => (
+            const renderEditPage = () => {
+                const isImageSelectOnly = selectedGrade?.id === '3'; // 无语言只显示辨一辨和识图选一
+                const steps = [
+                    { key: 'basic', label: '基础' },
+                    ...(isImageSelectOnly ? [] : [{ key: 'recognition', label: '认一认' }]),
+                    { key: 'discrimination', label: '辨一辨' },
+                    ...(isImageSelectOnly ? [{ key: 'imageSelect', label: '识图选一' }] : [{ key: 'expression', label: '说一说' }]),
+                    { key: 'students', label: '学生' }
+                ];
+                
+                return (
                 <div>
                     <div className="step-bar">
-                        <div className={`step ${currentTab === 'basic' ? 'active' : ''}`}>
-                            <div className="step-num">1</div>
-                            <span className="step-label">基础</span>
-                        </div>
-                        <div className="step-line"></div>
-                        <div className={`step ${currentTab === 'recognition' ? 'active' : ''}`}>
-                            <div className="step-num">2</div>
-                            <span className="step-label">认一认</span>
-                        </div>
-                        <div className="step-line"></div>
-                        <div className={`step ${currentTab === 'discrimination' ? 'active' : ''}`}>
-                            <div className="step-num">3</div>
-                            <span className="step-label">辨一辨</span>
-                        </div>
-                        <div className="step-line"></div>
-                        <div className={`step ${currentTab === 'expression' ? 'active' : ''}`}>
-                            <div className="step-num">4</div>
-                            <span className="step-label">说一说</span>
-                        </div>
-                        <div className="step-line"></div>
-                        <div className={`step ${currentTab === 'imageSelect' ? 'active' : ''}`}>
-                            <div className="step-num">5</div>
-                            <span className="step-label">识图选一</span>
-                        </div>
-                        <div className="step-line"></div>
-                        <div className={`step ${currentTab === 'students' ? 'active' : ''}`}>
-                            <div className="step-num">6</div>
-                            <span className="step-label">学生</span>
-                        </div>
+                        {steps.map((step, idx) => (
+                            <React.Fragment key={step.key}>
+                                {idx > 0 && <div className="step-line"></div>}
+                                <div className={`step ${currentTab === step.key ? 'active' : ''}`}>
+                                    <div className="step-num">{idx + 1}</div>
+                                    <span className="step-label">{step.label}</span>
+                                </div>
+                            </React.Fragment>
+                        ))}
                     </div>
                     
                     <div className="card">
@@ -533,10 +523,10 @@
                         
                         <div className="tabs">
                             <div className={`tab ${currentTab === 'basic' ? 'active' : ''}`} onClick={() => setCurrentTab('basic')}>基础信息</div>
-                            <div className={`tab ${currentTab === 'recognition' ? 'active' : ''}`} onClick={() => setCurrentTab('recognition')}>认一认</div>
+                            {!isImageSelectOnly && <div className={`tab ${currentTab === 'recognition' ? 'active' : ''}`} onClick={() => setCurrentTab('recognition')}>认一认</div>}
                             <div className={`tab ${currentTab === 'discrimination' ? 'active' : ''}`} onClick={() => setCurrentTab('discrimination')}>辨一辨</div>
-                            <div className={`tab ${currentTab === 'expression' ? 'active' : ''}`} onClick={() => setCurrentTab('expression')}>说一说</div>
-                            <div className={`tab ${currentTab === 'imageSelect' ? 'active' : ''}`} onClick={() => setCurrentTab('imageSelect')}>识图选一</div>
+                            {isImageSelectOnly && <div className={`tab ${currentTab === 'imageSelect' ? 'active' : ''}`} onClick={() => setCurrentTab('imageSelect')}>识图选一</div>}
+                            {!isImageSelectOnly && <div className={`tab ${currentTab === 'expression' ? 'active' : ''}`} onClick={() => setCurrentTab('expression')}>说一说</div>}
                             <div className={`tab ${currentTab === 'students' ? 'active' : ''}`} onClick={() => setCurrentTab('students')}>学生列表</div>
                         </div>
                         
@@ -966,7 +956,8 @@
                         </div>
                     </div>
                 </div>
-            );
+                );
+            };
             
             return (
                 <div className="container">
