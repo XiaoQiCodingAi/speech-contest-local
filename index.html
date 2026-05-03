@@ -1222,30 +1222,6 @@
                             </div>
                         );
                     }
-                                        <p style={{fontSize: '18px', color: '#666'}}>{reviewResult.date} 答题结果</p>
-                                    </div>
-                                    
-                                    <div style={{marginTop: '20px'}}>
-                                        {rounds.map(key => renderRoundResult(key))}
-                                    </div>
-                                    
-                                    <div className="result-total">
-                                        总分：{total} / {maxScores.total} 分
-                                    </div>
-                                    
-                                    <div className="text-center">
-                                        <button className="btn btn-secondary btn-large" onClick={() => { setReviewResult(null); setScreen('stats'); }}>
-                                            返回统计
-                                        </button>
-                                        <button className="btn btn-secondary" onClick={goHome}>
-                                            返回首页
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    }
-                    
                     default:
                         return null;
                 }
