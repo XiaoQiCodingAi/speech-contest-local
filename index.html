@@ -1150,20 +1150,23 @@
                         const maxTotal = roundsForReview.reduce((sum, key) => sum + calcMaxScore(key), 0);
                         
                         const roundNames = { recognition: '认一认', imageSelect: '识图选一', discrimination: '辨一辨', expression: '说一说' };
+                        const scoreKeyMap = { recognition: 'r', imageSelect: 's', discrimination: 'd', expression: 'e' };
                         
                         const isCorrectForRound = (key) => {
-                            const scores = detail[key] || [];
+                            const sk = scoreKeyMap[key];
+                            const scores = detail[sk] || [];
                             const opts = gradeForReview?.[key]?.scoreOptions || [3, 0];
                             const maxScore = opts[0];
                             return scores.map(s => s >= maxScore);
                         };
                         
                         const renderRoundResult = (key) => {
-                            const scores = detail[key] || [];
+                            const sk = scoreKeyMap[key];
+                            const scores = detail[sk] || [];
                             const opts = gradeForReview?.[key]?.scoreOptions || [3, 0];
                             const maxScore = opts[0];
                             const correctArr = isCorrectForRound(key);
-                            const roundTotal = calcRoundScore(key);
+                            const roundTotal = calcRoundScore(sk);
                             const correctCount = correctArr.filter(Boolean).length;
                             
                             if (scores.length === 0) return null;
