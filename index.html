@@ -699,6 +699,9 @@
                 setScreen('result');
             };
             
+            // 计算各环节分数总和
+            const getRoundScore = (key) => (currentScores[key] || []).reduce((a, b) => a + b, 0);
+            
             // 计算各环节最高分
             const getMaxScores = () => {
                 if (!selectedGrade) return { r: 9, d: 9, e: 9, s: 9 };
@@ -953,8 +956,63 @@
                     
                     case 'result': {
                         const rounds = getGradeRounds();
-                        const total = (currentScores.r || 0) + (currentScores.s || 0) + (currentScores.d || 0) + (currentScores.e || 0);
                         const maxScores = getMaxScores();
+                        const total = getRoundScore('r') + getRoundScore('s') + getRoundScore('d') + getRoundScore('e');
+                        
+                        // 获取环节名称
+                        const roundNames = { recognition: '认一认', imageSelect: '识图选一', discrimination: '辨一辨', expression: '说一说' };
+                        
+                        // 判断某题是否正确（根据分数判断：得最高分算对）
+                        const isCorrectForRound = (key) => {
+                            const scores = currentScores[key] || [];
+                            const options = selectedGrade?.[key]?.scoreOptions || [3, 0];
+                            const maxScore = options[0];
+                            return scores.map(s => s >= maxScore);
+                        };
+                        
+                        const renderRoundResult = (key) => {
+                            const scores = currentScores[key] || [];
+                            const maxScore = (selectedGrade?.[key]?.scoreOptions || [3, 0])[0];
+                            const correctArr = isCorrectForRound(key);
+                            const totalScore = getRoundScore(key);
+                            const correctCount = correctArr.filter(Boolean).length;
+                            const isImageRound = key === 'imageSelect' || key === 'discrimination';
+                            
+                            return (
+                                <div style={{marginBottom: '20px', padding: '15px', background: '#f8f9fa', borderRadius: '15px'}}>
+                                    <div style={{fontSize: '16px', fontWeight: 'bold', color: '#333', marginBottom: '10px'}}>
+                                        {roundNames[key]}
+                                    </div>
+                                    {/* 题目对错图标 */}
+                                    <div style={{display: 'flex', gap: '8px', marginBottom: '10px', flexWrap: 'wrap'}}>
+                                        {scores.map((score, idx) => (
+                                            <div key={idx} style={{
+                                                width: '36px', height: '36px', borderRadius: '50%',
+                                                background: correctArr[idx] ? '#d4edda' : '#f8d7da',
+                                                border: `2px solid ${correctArr[idx] ? '#28a745' : '#dc3545'}`,
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                fontSize: '18px', fontWeight: 'bold',
+                                                color: correctArr[idx] ? '#28a745' : '#dc3545'
+                                            }}>
+                                                {correctArr[idx] ? '●' : '×'}
+                                            </div>
+                                        ))}
+                                    </div>
+                                    {/* 分数信息 */}
+                                    <div style={{fontSize: '14px', color: '#666'}}>
+                                        {isImageRound ? (
+                                            <span style={{color: totalScore > 0 ? '#28a745' : '#dc3545'}}>
+                                                得分：{totalScore}分（{correctCount}/{scores.length}题正确）
+                                            </span>
+                                        ) : (
+                                            <span style={{color: '#ff6b6b'}}>
+                                                得分：{totalScore}分
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        };
                         
                         return (
                             <div className="container">
@@ -965,31 +1023,9 @@
                                         <p style={{fontSize: '18px', color: '#666'}}>答题结果</p>
                                     </div>
                                     
-                                    <div className="result-breakdown">
-                                        {rounds.includes('recognition') && (
-                                            <div className="result-item">
-                                                <div className="label">认一认</div>
-                                                <div className="score">{currentScores.r ?? 0}分</div>
-                                            </div>
-                                        )}
-                                        {rounds.includes('imageSelect') && (
-                                            <div className="result-item">
-                                                <div className="label">识图选一</div>
-                                                <div className="score">{currentScores.s ?? 0}分</div>
-                                            </div>
-                                        )}
-                                        {rounds.includes('discrimination') && (
-                                            <div className="result-item">
-                                                <div className="label">辨一辨</div>
-                                                <div className="score">{currentScores.d ?? 0}分</div>
-                                            </div>
-                                        )}
-                                        {rounds.includes('expression') && (
-                                            <div className="result-item">
-                                                <div className="label">说一说</div>
-                                                <div className="score">{currentScores.e ?? 0}分</div>
-                                            </div>
-                                        )}
+                                    {/* 各环节结果 */}
+                                    <div style={{marginTop: '20px'}}>
+                                        {rounds.map(key => renderRoundResult(key))}
                                     </div>
                                     
                                     <div className="result-total">
