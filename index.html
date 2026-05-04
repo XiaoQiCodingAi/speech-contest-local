@@ -341,11 +341,15 @@
             const [selectedOption, setSelectedOption] = useState(null);
             const [isTransitioning, setIsTransitioning] = useState(false);
             
+            const [usedRecogIds, setUsedRecogIds] = useState(new Set()); // 认一认已用图片ID
+            const [usedDiscBigIds, setUsedDiscBigIds] = useState(new Set()); // 辨一辨已用大图ID
+            const [usedExprIds, setUsedExprIds] = useState(new Set()); // 说一说已用图片ID
+            
             // 识图选一专用状态
             const [imageSelectPair, setImageSelectPair] = useState([]); // 当前左右两张图片
             const [imageSelectCorrect, setImageSelectCorrect] = useState(null); // 正确答案索引 (0或1)
             const [imageSelectTarget, setImageSelectTarget] = useState(null); // 当前题目label
-            const [usedImageSelectLabels, setUsedImageSelectLabels] = useState(new Set()); // 已用label集合（去重）
+            const [usedImageSelectLabels, setUsedImageSelectLabels] = useState(new Set()); // 识图选一已用label集合（去重）
             
             const rollInterval = useRef(null);
             
