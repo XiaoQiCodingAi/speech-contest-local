@@ -484,15 +484,26 @@
                 console.log('当前环节:', currentRoundKey, '总环节:', rounds);
                 
                 if (currentRoundKey === 'recognition') {
-                    // 认一认
-                    const imgs = selectedGrade.recognition?.images || [];
-                    if (imgs.length === 0) {
+                    // 认一认 - 防重复
+                    const allImgs = selectedGrade.recognition?.images || [];
+                    if (allImgs.length === 0) {
                         alert('请先在后台添加认一认图片');
                         return;
                     }
-                    const randomIndex = Math.floor(Math.random() * imgs.length);
-                    const img = imgs[randomIndex];
-                    setCurrentImages([img]);
+                    const availableImgs = allImgs.filter(img => !usedRecogIds.has(img.id));
+                    if (availableImgs.length === 0) {
+                        // 所有图片都用过了，重置
+                        setUsedRecogIds(new Set());
+                        const randomIndex = Math.floor(Math.random() * allImgs.length);
+                        const img = allImgs[randomIndex];
+                        setUsedRecogIds(new Set([img.id]));
+                        setCurrentImages([img]);
+                    } else {
+                        const randomIndex = Math.floor(Math.random() * availableImgs.length);
+                        const img = availableImgs[randomIndex];
+                        setUsedRecogIds(prev => new Set([...prev, img.id]));
+                        setCurrentImages([img]);
+                    }
                     setImageSelectPair([]);
                     setImageSelectCorrect(null);
                     setDiscriminationOptions([]);
@@ -548,12 +559,12 @@
                     
                 } else if (currentRoundKey === 'discrimination') {
                     console.log('进入辨一辨逻辑块');
-                    // 辨一辨：使用标记的正确图片
-                    const bigImgs = selectedGrade.discrimination?.bigImages || [];
+                    // 辨一辨：使用标记的正确图片（防重复）
+                    const allBigImgs = selectedGrade.discrimination?.bigImages || [];
                     const smallImgs = selectedGrade.discrimination?.smallImages || [];
                     
                     // 只使用已标记正确答案的大图
-                    const validBigImgs = bigImgs.filter(b => b.correctSmallId);
+                    const validBigImgs = allBigImgs.filter(b => b.correctSmallId);
                     
                     if (validBigImgs.length === 0 || smallImgs.length < 3) {
                         console.log('校验失败: validBigImgs=', validBigImgs.length, 'smallImgs=', smallImgs.length);
@@ -561,9 +572,20 @@
                         return;
                     }
                     
-                    // 随机选1个大图作为题目
-                    const questionIndex = Math.floor(Math.random() * validBigImgs.length);
-                    const questionImg = validBigImgs[questionIndex];
+                    // 防重复：只从未用过的大图中选
+                    const availableBigImgs = validBigImgs.filter(b => !usedDiscBigIds.has(b.id));
+                    let questionImg;
+                    if (availableBigImgs.length === 0) {
+                        // 所有大图都用过了，重置
+                        setUsedDiscBigIds(new Set());
+                        const randomIndex = Math.floor(Math.random() * validBigImgs.length);
+                        questionImg = validBigImgs[randomIndex];
+                        setUsedDiscBigIds(new Set([questionImg.id]));
+                    } else {
+                        const randomIndex = Math.floor(Math.random() * availableBigImgs.length);
+                        questionImg = availableBigImgs[randomIndex];
+                        setUsedDiscBigIds(prev => new Set([...prev, questionImg.id]));
+                    }
                     setCurrentImages([questionImg]);
                     setImageSelectPair([]);
                     setImageSelectCorrect(null);
@@ -598,14 +620,25 @@
                     setCorrectOptionIndex(newCorrectIndex);
                     
                 } else {
-                    // 说一说
-                    const imgs = selectedGrade.expression?.images || [];
-                    if (imgs.length === 0) {
+                    // 说一说 - 防重复
+                    const allImgs = selectedGrade.expression?.images || [];
+                    if (allImgs.length === 0) {
                         alert('请先在后台添加说一说图片');
                         return;
                     }
-                    const randomIndex = Math.floor(Math.random() * imgs.length);
-                    const img = imgs[randomIndex];
+                    const availableImgs = allImgs.filter(img => !usedExprIds.has(img.id));
+                    let img;
+                    if (availableImgs.length === 0) {
+                        // 所有图片都用过了，重置
+                        setUsedExprIds(new Set());
+                        const randomIndex = Math.floor(Math.random() * allImgs.length);
+                        img = allImgs[randomIndex];
+                        setUsedExprIds(new Set([img.id]));
+                    } else {
+                        const randomIndex = Math.floor(Math.random() * availableImgs.length);
+                        img = availableImgs[randomIndex];
+                        setUsedExprIds(prev => new Set([...prev, img.id]));
+                    }
                     setCurrentImages([img]);
                     setImageSelectPair([]);
                     setImageSelectCorrect(null);
@@ -779,6 +812,9 @@
                 setCurrentScores({ r: [], d: [], e: [], s: [] });
                 setCurrentRound(0);
                 setCurrentQuestionIndex(0);
+                setUsedRecogIds(new Set());
+                setUsedDiscBigIds(new Set());
+                setUsedExprIds(new Set());
                 setUsedImageSelectLabels(new Set());
                 setImageSelectPair([]);
                 setScreen('random');
