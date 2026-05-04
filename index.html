@@ -917,7 +917,7 @@
                     case 'game': {
                         const rounds = getGradeRounds();
                         const currentRoundKey = rounds[currentRound];
-                        const roundCount = selectedGrade?.[currentRoundKey]?.count || 3;
+                        const roundCount = (selectedGrade && selectedGrade[currentRoundKey] && selectedGrade[currentRoundKey].count) || 3;
                         
                         return (
                             <div className="container">
