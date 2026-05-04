@@ -1226,18 +1226,22 @@
                                 // 辨一辨
                                 if (key === 'discrimination') {
                                     const discDetail = result.discriminationDetail || [];
-                                    const bigImgs = gradeForCard?.discrimination?.bigImages || [];
                                     return (
                                         <div key={key} style={{marginBottom: '15px', padding: '10px', background: '#f8f9fa', borderRadius: '10px'}}>
                                             <div style={{fontSize: '14px', fontWeight: 'bold', color: '#333', marginBottom: '8px'}}>{roundNames[key]}  小计 {calcRoundScore(sk)}/{calcMaxScore(key)}</div>
                                             <div style={{display: 'flex', gap: '6px', flexWrap: 'wrap'}}>
                                                 {scores.map((score, idx) => {
                                                     const item = discDetail[idx] || {};
-                                                    const bigImg = bigImgs.find(b => b.id === (item.questionImgUrl ? item.questionImgUrl : null)) || bigImgs[0];
                                                     const isCorrect = score >= maxScore;
                                                     return (
                                                         <div key={idx} style={{position: 'relative', textAlign: 'center'}}>
-                                                            {item.questionImgUrl && <img src={item.questionImgUrl} alt={idx} style={{width: '60px', height: '60px', objectFit: 'cover', borderRadius: '6px', border: isCorrect ? '3px solid #28a745' : '3px solid #dc3545'}} onClick={() => openLightboxBig(item)} />}
+                                                            {item.questionImgUrl && (
+                                                                <div style={{position: 'relative', display: 'inline-block'}}>
+                                                                    <img src={item.questionImgUrl} alt={idx} style={{width: '60px', height: '60px', objectFit: 'cover', borderRadius: '6px', border: isCorrect ? '3px solid #28a745' : '3px solid #dc3545'}} onClick={() => openLightboxDisc(result, idx)} />
+                                                                    <span style={{position: 'absolute', top: '2px', left: '2px', background: '#28a745', color: 'white', borderRadius: '50%', width: '16px', height: '16px', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>🟢</span>
+                                                                    {!isCorrect && <span style={{position: 'absolute', top: '2px', right: '2px', background: '#dc3545', color: 'white', borderRadius: '50%', width: '16px', height: '16px', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>🔴</span>}
+                                                                </div>
+                                                            )}
                                                             <div style={{fontSize: '12px', marginTop: '2px', color: isCorrect ? '#28a745' : '#dc3545'}}>
                                                                 {isCorrect ? '●' : '×'} {score}分
                                                             </div>
@@ -1261,7 +1265,13 @@
                                                     const isCorrect = score >= maxScore;
                                                     return (
                                                         <div key={idx} style={{position: 'relative', textAlign: 'center'}}>
-                                                            {item.questionImgUrl && <img src={item.questionImgUrl} alt={idx} style={{width: '60px', height: '60px', objectFit: 'cover', borderRadius: '6px', border: isCorrect ? '3px solid #28a745' : '3px solid #dc3545'}} onClick={() => openLightboxBig(item)} />}
+                                                            {item.questionImgUrl && (
+                                                                <div style={{position: 'relative', display: 'inline-block'}}>
+                                                                    <img src={item.questionImgUrl} alt={idx} style={{width: '60px', height: '60px', objectFit: 'cover', borderRadius: '6px', border: isCorrect ? '3px solid #28a745' : '3px solid #dc3545'}} onClick={() => openLightboxImgSelect(result, idx)} />
+                                                                    <span style={{position: 'absolute', top: '2px', left: '2px', background: '#28a745', color: 'white', borderRadius: '50%', width: '16px', height: '16px', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>🟢</span>
+                                                                    {!isCorrect && <span style={{position: 'absolute', top: '2px', right: '2px', background: '#dc3545', color: 'white', borderRadius: '50%', width: '16px', height: '16px', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>🔴</span>}
+                                                                </div>
+                                                            )}
                                                             <div style={{fontSize: '12px', marginTop: '2px', color: isCorrect ? '#28a745' : '#dc3545'}}>
                                                                 {isCorrect ? '●' : '×'} {score}分
                                                             </div>
@@ -1297,12 +1307,20 @@
                         // 大图预览
                         const [lightbox, setLightbox] = useState({ open: false, imgs: [], startIdx: 0 });
                         const openLightbox = (imgs, startIdx) => setLightbox({ open: true, imgs: imgs, startIdx });
-                        const openLightboxBig = (item) => {
-                            // 识图选一和辨一辨显示大图+选项图
-                            if (item.questionImgUrl) {
-                                setLightbox({ open: true, imgs: [{url: item.questionImgUrl}], startIdx: 0, detail: item });
-                            }
+                        const openLightboxDisc = (result, idx) => {
+                            const discDetail = result.discriminationDetail || [];
+                            const item = discDetail[idx] || {};
+                            const bigImgs = (grades.find(g => g.id === result.gradeId) || selectedGrade)?.discrimination?.bigImages || [];
+                            const startIndex = bigImgs.findIndex(b => b.url === item.questionImgUrl);
+                            setLightbox({ open: true, imgs: bigImgs.map(b => ({url: b.url, id: b.id})), startIdx: startIndex >= 0 ? startIndex : 0 });
                         };
+                        const openLightboxImgSelect = (result, idx) => {
+                            const imgDetail = result.imageSelectDetail || [];
+                            const item = imgDetail[idx] || {};
+                            setLightbox({ open: true, imgs: [{url: item.questionImgUrl}], startIdx: 0 });
+                        };
+                        const prevImg = () => setLightbox(l => ({ ...l, startIdx: (l.startIdx - 1 + l.imgs.length) % l.imgs.length }));
+                        const nextImg = () => setLightbox(l => ({ ...l, startIdx: (l.startIdx + 1) % l.imgs.length }));
                         
                         return (
                             <div className="container">
@@ -1337,12 +1355,26 @@
                                     <button className="btn btn-secondary" onClick={goHome}>返回首页</button>
                                 </div>
                                 
-                                {/* 大图预览 */}
-                                {lightbox.open && (
-                                    <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.9)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center'}} onClick={() => setLightbox({open: false, imgs: [], startIdx: 0})}>
-                                        <div style={{position: 'absolute', top: '10px', right: '20px', color: '#fff', fontSize: '30px', cursor: 'pointer'}} onClick={() => setLightbox({open: false, imgs: [], startIdx: 0})}>×</div>
-                                        {lightbox.imgs.length > 0 && (
-                                            <img src={lightbox.imgs[lightbox.startIdx]?.url} style={{maxWidth: '90vw', maxHeight: '85vh', objectFit: 'contain', borderRadius: '10px'}} onClick={e => e.stopPropagation()} />
+                                {/* 大图预览 + 左右滑动 */}
+                                {lightbox.open && lightbox.imgs.length > 0 && (
+                                    <div 
+                                        style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.92)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column'}} 
+                                        onClick={() => setLightbox({...lightbox, open: false})}
+                                    >
+                                        <div style={{position: 'absolute', top: '10px', right: '20px', color: '#fff', fontSize: '30px', cursor: 'pointer', zIndex: 1}} onClick={e => { e.stopPropagation(); setLightbox({...lightbox, open: false}); }}>×</div>
+                                        {lightbox.imgs.length > 1 && (
+                                            <>
+                                                <div style={{position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#fff', fontSize: '50px', cursor: 'pointer', zIndex: 1, userSelect: 'none'}} onClick={e => { e.stopPropagation(); prevImg(); }}>‹</div>
+                                                <div style={{position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: '#fff', fontSize: '50px', cursor: 'pointer', zIndex: 1, userSelect: 'none'}} onClick={e => { e.stopPropagation(); nextImg(); }}>›</div>
+                                            </>
+                                        )}
+                                        <img 
+                                            src={lightbox.imgs[lightbox.startIdx]?.url} 
+                                            style={{maxWidth: '90vw', maxHeight: '80vh', objectFit: 'contain', borderRadius: '10px'}} 
+                                            onClick={e => e.stopPropagation()} 
+                                        />
+                                        {lightbox.imgs.length > 1 && (
+                                            <div style={{color: '#ccc', fontSize: '14px', marginTop: '10px'}}>{lightbox.startIdx + 1} / {lightbox.imgs.length}</div>
                                         )}
                                     </div>
                                 )}
