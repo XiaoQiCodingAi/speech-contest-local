@@ -273,20 +273,15 @@
                 e.target.value = '';
             };
             
-            // 初始加载数据：优先从 config.js 加载，失败则用 IndexedDB，都没有则空状态
+            // 初始加载数据：从 config.json 加载，失败则用 IndexedDB，都没有则空状态
             useEffect(() => {
-                // 尝试从 config.js 加载
-                fetch('config.js')
+                // 优先从 config.json 加载
+                fetch('config.json')
                     .then(res => {
-                        if (!res.ok) throw new Error('config.js not found');
-                        return res.text();
+                        if (!res.ok) throw new Error('config.json not found');
+                        return res.json();
                     })
-                    .then(text => {
-                        // 把 config.js 当作 JS 解析，取 CONFIG 变量
-                        const match = text.match(/const\s+CONFIG\s*=\s*({[\s\S]*?});/);
-                        if (!match) throw new Error('CONFIG not found');
-                        // 用 Function 构造器安全解析（仅解析简单对象）
-                        const data = eval('(' + match[1] + ')');
+                    .then(data => {
                         if (data.grades && Array.isArray(data.grades)) {
                             setGrades(data.grades);
                             window.SpeechContestDB.saveGrades(data.grades);
@@ -296,7 +291,7 @@
                         }
                     })
                     .catch(() => {
-                        // config.js 不存在或解析失败，尝试从 IndexedDB 加载
+                        // config.json 不存在或解析失败，尝试从 IndexedDB 加载
                         window.SpeechContestDB.loadGrades().then(saved => {
                             if (saved && saved.length > 0) {
                                 setGrades(saved);

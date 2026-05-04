@@ -385,27 +385,26 @@
             
             // 加载数据
             useEffect(() => {
-                // 使用 IndexedDB 加载数据
-                window.SpeechContestDB.loadGrades().then(savedGrades => {
-                    if (savedGrades) {
-                        setGrades(savedGrades);
-                        // 检查config.json
-                        fetch('config.json')
-                            .then(res => res.json())
-                            .then(data => {
-                                if (data.grades && Array.isArray(data.grades) && data.grades.length > 0) {
-                                    if (confirm('发现 config.json，是否加载已有配置？')) {
-                                        setGrades(data.grades);
-                                        window.SpeechContestDB.saveGrades(data.grades);
-                                    }
-                                }
-                            })
-                            .catch(() => {});
-                    } else {
-                        setGrades(defaultGrades);
-                        window.SpeechContestDB.saveGrades(defaultGrades);
-                    }
-                });
+                // 优先从 config.json 加载（两个页面共用同一配置）
+                fetch('config.json')
+                    .then(res => {
+                        if (!res.ok) throw new Error('config.json not found');
+                        return res.json();
+                    })
+                    .then(data => {
+                        if (data.grades && Array.isArray(data.grades)) {
+                            setGrades(data.grades);
+                            window.SpeechContestDB.saveGrades(data.grades);
+                        } else {
+                            throw new Error('invalid format');
+                        }
+                    })
+                    .catch(() => {
+                        // config.json 不存在，从 IndexedDB 加载
+                        window.SpeechContestDB.loadGrades().then(savedGrades => {
+                            if (savedGrades) setGrades(savedGrades);
+                        });
+                    });
                 
                 window.SpeechContestDB.loadResults().then(savedResults => {
                     if (savedResults && savedResults.length > 0) {
@@ -716,7 +715,7 @@
                 
                 const rounds = getGradeRounds();
                 const currentRoundKey = rounds[currentRound];
-                const roundCount = selectedGrade?[currentRoundKey]?.count || 3;
+                const roundCount = (selectedGrade && selectedGrade[currentRoundKey] && selectedGrade[currentRoundKey].count) || 3;
                 
                 // 识图选一：记录已用label
                 if (currentRoundKey === 'imageSelect' && imageSelectTarget) {
