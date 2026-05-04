@@ -432,9 +432,8 @@
             };
             
             const removeImage = (field, imageId) => {
-                // 找到要删除的图片URL
                 // 更新本地状态（Base64存储无需删除服务器文件）
-                if (field === 'recognition' || field === 'expression') {
+                if (field === 'recognition' || field === 'expression' || field === 'imageSelect') {
                     const currentImages = selectedGrade[field]?.images || [];
                     updateGrade(field, { ...selectedGrade[field], images: currentImages.filter(img => img.id !== imageId) });
                 } else if (field === 'bigImages') {
