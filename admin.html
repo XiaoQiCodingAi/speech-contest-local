@@ -1037,9 +1037,9 @@
                                         ⚠️ 图片数量不足，至少需要2张图片才能进行二选一
                                     </div>
                                 )}
-                                {(selectedGrade?.imageSelect?.images || []).filter(img => img.label && img.label.trim()).length < 2 && (selectedGrade?.imageSelect?.images || []).length >= 2 && (
+                                {(selectedGrade?.imageSelect?.images || []).filter(img => img.label && img.label.trim()).length < (selectedGrade?.imageSelect?.count || 3) && (
                                     <div style={{textAlign: 'center', padding: '10px', color: '#dc3545', background: '#f8d7da', borderRadius: '10px', marginTop: '10px'}}>
-                                        ⚠️ 至少需要2张设置了 label 的图片才能开始答题
+                                        ⚠️ 至少需要{(selectedGrade?.imageSelect?.count || 3)}张设置了 label 的图片才能开始答题
                                     </div>
                                 )}
                             </div>
