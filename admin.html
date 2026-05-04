@@ -6,6 +6,7 @@
     <title>口语交际比赛 - 后台管理</title>
     <script src="react.min.js"></script>
     <script src="react-dom.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="babel.min.js"></script>
     <script>
 // IndexedDB 存储层
@@ -391,6 +392,28 @@
             const removeStudent = (id) => {
                 const newStudents = (selectedGrade.students || []).filter(s => s.id !== id);
                 updateGrade('students', newStudents);
+            };
+            
+            const importStudentsFromExcel = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    try {
+                        const data = evt.target.result;
+                        const workbook = XLSX.read(data, {type: 'binary'});
+                        const sheetName = workbook.SheetNames[0];
+                        const sheet = workbook.Sheets[sheetName];
+                        const rows = XLSX.utils.sheet_to_json(sheet, {header: 1});
+                        // 取第一列，跳过第1行（标题），过滤空行
+                        const names = rows.map((row, idx) => idx > 0 ? (row[0] || '').toString().trim() : '').filter(n => n);
+                        if (names.length === 0) { alert('未找到有效姓名'); return; }
+                        const newStudents = names.map(name => ({ id: Date.now().toString() + Math.random().toString(36).substr(2, 9), name }));
+                        updateGrade('students', newStudents);
+                    } catch (err) { alert('解析失败：' + err.message); }
+                };
+                reader.readAsBinaryString(file);
+                e.target.value = '';
             };
             
             const handleImageUpload = (e, field) => {
@@ -1059,6 +1082,8 @@
                                         addStudent(input.value);
                                         input.value = '';
                                     }}>添加</button>
+                                    <input type="file" id="excel-upload" accept=".xlsx,.xls,.csv" style={{display: 'none'}} onChange={importStudentsFromExcel} />
+                                    <button className="btn" style={{background: '#666', color: '#fff'}} onClick={() => document.getElementById('excel-upload').click()}>📥 导入Excel</button>
                                 </div>
                                 <div className="student-list">
                                     {(selectedGrade?.students || []).map(student => (
