@@ -232,18 +232,6 @@
             const [uploading, setUploading] = useState(false);
             const fileInputRef = useRef(null);
             const [configLoaded, setConfigLoaded] = useState(false);
-            
-            // 页面加载时自动弹出文件选择框
-            useEffect(() => {
-                // 延迟200ms触发，让页面先渲染完成
-                setTimeout(() => {
-                    if (fileInputRef.current) {
-                        fileInputRef.current.click();
-                    }
-                }, 200);
-            }, []);
-            
-            // 处理自动加载config.json
             const handleAutoConfigLoad = (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
@@ -285,16 +273,37 @@
                 e.target.value = '';
             };
             
-            // 初始加载数据
+            // 初始加载数据：优先从 config.js 加载，失败则用 IndexedDB，都没有则空状态
             useEffect(() => {
-                window.SpeechContestDB.loadGrades().then(saved => {
-                    if (saved && saved.length > 0) {
-                        setGrades(saved);
-                    } else {
-                        setGrades(defaultGrades);
-                        window.SpeechContestDB.saveGrades(defaultGrades);
-                    }
-                });
+                // 尝试从 config.js 加载
+                fetch('config.js')
+                    .then(res => {
+                        if (!res.ok) throw new Error('config.js not found');
+                        return res.text();
+                    })
+                    .then(text => {
+                        // 把 config.js 当作 JS 解析，取 CONFIG 变量
+                        const match = text.match(/const\s+CONFIG\s*=\s*({[\s\S]*?});/);
+                        if (!match) throw new Error('CONFIG not found');
+                        // 用 Function 构造器安全解析（仅解析简单对象）
+                        const data = eval('(' + match[1] + ')');
+                        if (data.grades && Array.isArray(data.grades)) {
+                            setGrades(data.grades);
+                            window.SpeechContestDB.saveGrades(data.grades);
+                            setConfigLoaded(true);
+                        } else {
+                            throw new Error('invalid format');
+                        }
+                    })
+                    .catch(() => {
+                        // config.js 不存在或解析失败，尝试从 IndexedDB 加载
+                        window.SpeechContestDB.loadGrades().then(saved => {
+                            if (saved && saved.length > 0) {
+                                setGrades(saved);
+                            }
+                            // else: 保持空状态，让用户手动导入
+                        });
+                    });
             }, []);
             
             const saveGrades = (newGrades) => {
