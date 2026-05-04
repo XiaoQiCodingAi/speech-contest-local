@@ -63,5 +63,18 @@
 
 ---
 
+## 9. 答题结果页重构
+
+- [ ] 9.1 `results` 数据结构新增 `discrimination` 和 `imageSelect` 字段，记录每题学生选的图片ID
+- [ ] 9.2 答题流程中：辨一辨每组记录 `studentChoiceId` 和 `correctId`；识图选一每题记录 `studentChoiceId` 和 `correctId`
+- [ ] 9.3 列表页改为姓名+总分紧凑展示，点击姓名展开结果卡
+- [ ] 9.4 结果卡按4环节分块展示，图片+得分+对错标记
+- [ ] 9.5 辨一辨/识图选一：学生选的图左上角标🔴，正确答案标🟢
+- [ ] 9.6 认一认/说一说：`●`完全正确 `⚠️`部分正确 `×`错误，图片下方显示分值
+- [ ] 9.7 点击图片弹出大图预览（遮罩+左右滑动）
+- [ ] 9.8 历史数据兼容处理（或提示用户重开比赛）
+
+---
+
 *OpenSpec Change: local-version*
 *All specs must pass before marking tasks complete*
