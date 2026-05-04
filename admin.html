@@ -1083,7 +1083,7 @@
                                         input.value = '';
                                     }}>添加</button>
                                     <input type="file" id="excel-upload" accept=".xlsx,.xls,.csv" style={{display: 'none'}} onChange={importStudentsFromExcel} />
-                                    <button className="btn" style={{background: '#666', color: '#fff'}} onClick={() => document.getElementById('excel-upload').click()}>📥 导入Excel</button>
+                                    <button className="btn btn-secondary" style={{marginLeft: "10px"}} onClick={() => document.getElementById("excel-upload").click()}>📥 导入Excel</button>
                                 </div>
                                 <div className="student-list">
                                     {(selectedGrade?.students || []).map(student => (
