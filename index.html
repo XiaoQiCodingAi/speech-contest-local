@@ -353,7 +353,9 @@
             const [imageSelectTarget, setImageSelectTarget] = useState(null); // 当前题目label
             const [currentBigImg, setCurrentBigImg] = useState(null); // 当前辨一辨大图（用于记录详情）
             const [usedImageSelectLabels, setUsedImageSelectLabels] = useState(new Set()); // 识图选一已用label集合（去重）
-            
+            const [expandedStudent, setExpandedStudent] = useState(null); // 统计页展开学生
+            const [lightbox, setLightbox] = useState({ open: false, imgs: [], startIdx: 0 }); // 大图预览
+
             const rollInterval = useRef(null);
             const configInputRef = useRef(null);
             
@@ -1181,9 +1183,6 @@
                     }
                     
                     case 'stats': {
-                        // 折叠展开状态
-                        const [expandedStudent, setExpandedStudent] = useState(null);
-                        
                         // 按年级分组
                         const groupedResults = results.reduce((acc, result) => {
                             const gradeName = result.gradeName || (result.scores && result.scores.r !== undefined ? '中低年段' : '未知年段');
@@ -1319,7 +1318,6 @@
                         };
                         
                         // 大图预览
-                        const [lightbox, setLightbox] = useState({ open: false, imgs: [], startIdx: 0 });
                         const openLightbox = (imgs, startIdx) => setLightbox({ open: true, imgs: imgs, startIdx });
                         const openLightboxDisc = (result, idx) => {
                             const discDetail = result.discriminationDetail || [];
