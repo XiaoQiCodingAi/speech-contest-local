@@ -178,15 +178,7 @@
 </head>
 <body>
     <div id="root"></div>
-    {/* 自动加载config.json的文件选择框 */}
-    <input 
-        type="file" 
-        ref={fileInputRef}
-        accept=".json,application/json" 
-        style={{display: 'none'}}
-        onChange={handleAutoConfigLoad}
-    />
-    
+
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
         
@@ -231,81 +223,33 @@
             const [currentTab, setCurrentTab] = useState('basic');
             const [selectedBigImage, setSelectedBigImage] = useState(null);
             const [uploading, setUploading] = useState(false);
-            const fileInputRef = useRef(null);
-            const [configLoaded, setConfigLoaded] = useState(false);
-            const handleAutoConfigLoad = (e) => {
+            const configInputRef = useRef(null);
+
+            // 选择配置文件
+            const onConfigFileChange = (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
-                
-                // 检查文件名是否是config.json
-                if (file.name === 'config.json') {
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                        try {
-                            const data = JSON.parse(event.target.result);
-                            if (data.grades && Array.isArray(data.grades)) {
-                                setGrades(data.grades);
-                                window.SpeechContestDB.saveGrades(data.grades);
-                                setConfigLoaded(true);
-                            }
-                        } catch (err) {
-                            // 文件格式错误，忽略
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    try {
+                        const data = JSON.parse(ev.target.result);
+                        if (data.grades && Array.isArray(data.grades)) {
+                            setGrades(data.grades);
+                            alert('✅ 配置文件加载成功！');
+                        } else {
+                            alert('❌ 配置文件格式错误：缺少 grades 字段或不是数组');
                         }
-                    };
-                    reader.readAsText(file);
-                } else {
-                    // 非config.json文件，也尝试加载
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                        try {
-                            const data = JSON.parse(event.target.result);
-                            if (data.grades && Array.isArray(data.grades)) {
-                                setGrades(data.grades);
-                                window.SpeechContestDB.saveGrades(data.grades);
-                                setConfigLoaded(true);
-                            }
-                        } catch (err) {
-                            // 文件格式错误，忽略
-                        }
-                    };
-                    reader.readAsText(file);
-                }
+                    } catch (err) {
+                        alert('❌ 解析配置文件失败，请确认是有效的 JSON 文件');
+                    }
+                };
+                reader.readAsText(file);
                 // 重置input允许重复选择同一文件
                 e.target.value = '';
             };
-            
-            // 初始加载数据：从 config.json 加载，失败则用 IndexedDB，都没有则空状态
-            useEffect(() => {
-                // 优先从 config.json 加载
-                fetch('config.json')
-                    .then(res => {
-                        if (!res.ok) throw new Error('config.json not found');
-                        return res.json();
-                    })
-                    .then(data => {
-                        if (data.grades && Array.isArray(data.grades)) {
-                            setGrades(data.grades);
-                            window.SpeechContestDB.saveGrades(data.grades);
-                            setConfigLoaded(true);
-                        } else {
-                            throw new Error('invalid format');
-                        }
-                    })
-                    .catch(() => {
-                        // config.json 不存在或解析失败，尝试从 IndexedDB 加载
-                        window.SpeechContestDB.loadGrades().then(saved => {
-                            if (saved && saved.length > 0) {
-                                setGrades(saved);
-                            }
-                            // else: 保持空状态，让用户手动导入
-                        });
-                    });
-            }, []);
-            
+
             const saveGrades = (newGrades) => {
-                // 同步更新UI，异步保存到IndexedDB
                 setGrades(newGrades);
-                window.SpeechContestDB.saveGrades(newGrades);
             };
             
             // 导出所有数据为JSON文件
@@ -355,7 +299,6 @@
                         const data = JSON.parse(event.target.result);
                         if (data.grades && Array.isArray(data.grades)) {
                             setGrades(data.grades);
-                            window.SpeechContestDB.saveGrades(data.grades);
                             alert('导入成功！共 ' + data.grades.length + ' 个年级');
                         } else {
                             alert('文件格式错误：找不到 grades 数组');
@@ -1144,35 +1087,69 @@
             
             return (
                 <div className="container">
+                    <input
+                        ref={configInputRef}
+                        type="file"
+                        accept=".json"
+                        style={{display: 'none'}}
+                        onChange={onConfigFileChange}
+                    />
                     <h1 className="page-title">⚙️ 后台管理</h1>
-                    
-                    {/* 数据保存按钮 */}
-                    <div className="card" style={{marginBottom: '20px', background: '#f0f9ff'}}>
-                        <div style={{display: 'flex', justifyContent: 'center', gap: '15px', flexWrap: 'wrap'}}>
-                            <button className="btn btn-success" onClick={saveToConfig}>💾 保存配置到 config.json</button>
-                            <label className="btn btn-secondary" style={{cursor: 'pointer'}}>
-                                📥 导入配置
-                                <input type="file" accept=".json" onChange={importData} style={{display: 'none'}} />
-                            </label>
+
+                    {grades.length === 0 ? (
+                        <div className="card">
+                            <div className="empty-state" style={{padding: '40px 20px', textAlign: 'center'}}>
+                                <div style={{fontSize: '48px', marginBottom: '20px'}}>📋</div>
+                                <div style={{fontSize: '18px', marginBottom: '30px', color: '#666'}}>
+                                    尚未配置比赛数据
+                                </div>
+                                <button className="btn btn-large" onClick={() => configInputRef.current.click()}>
+                                    📂 导入配置文件
+                                </button>
+                                <p style={{color: '#999', fontSize: '14px', marginTop: '20px'}}>
+                                    选择 config.json 文件导入
+                                </p>
+                                <hr style={{margin: '30px 0', border: 'none', borderTop: '1px solid #eee'}} />
+                                <p style={{color: '#666', marginBottom: '15px'}}>或者开始新配置：</p>
+                                <button className="btn btn-secondary" onClick={() => setGrades(defaultGrades)}>
+                                    ➕ 创建默认年段模板
+                                </button>
+                                <p style={{color: '#999', fontSize: '12px', marginTop: '15px'}}>
+                                    （导入后可通过保存功能导出为 config.json）
+                                </p>
+                            </div>
                         </div>
-                        <p style={{textAlign: 'center', color: '#666', fontSize: '12px', marginTop: '10px'}}>
-                            保存配置后，将 config.json 和 admin.html 一起拷贝到其他电脑即可使用
-                        </p>
-                    </div>
-                    
-                    {selectedGrade ? renderEditPage() : renderGradeList()}
-                    <div className="card mt-20">
-                        <div className="text-center">
-                            <p style={{color: '#666', marginBottom: '10px'}}>使用说明：</p>
-                            <p style={{color: '#999', fontSize: '14px'}}>
-                                1. 选择年段进行编辑<br/>
-                                2. 上传各环节图片<br/>
-                                3. 辨一辨需要标记大图对应的正确答案<br/>
-                                4. 添加学生名单<br/>
-                                5. 保存后用 index.html 开始比赛
-                            </p>
-                        </div>
-                    </div>
+                    ) : (
+                        <>
+                            {/* 数据保存按钮 */}
+                            <div className="card" style={{marginBottom: '20px', background: '#f0f9ff'}}>
+                                <div style={{display: 'flex', justifyContent: 'center', gap: '15px', flexWrap: 'wrap'}}>
+                                    <button className="btn btn-success" onClick={saveToConfig}>💾 保存配置到 config.json</button>
+                                    <label className="btn btn-secondary" style={{cursor: 'pointer'}}>
+                                        📥 导入配置
+                                        <input type="file" accept=".json" onChange={importData} style={{display: 'none'}} />
+                                    </label>
+                                </div>
+                                <p style={{textAlign: 'center', color: '#666', fontSize: '12px', marginTop: '10px'}}>
+                                    保存配置后，将 config.json 和 admin.html 一起拷贝到其他电脑即可使用
+                                </p>
+                            </div>
+
+                            {selectedGrade ? renderEditPage() : renderGradeList()}
+                            <div className="card mt-20">
+                                <div className="text-center">
+                                            <p style={{color: '#666', marginBottom: '10px'}}>使用说明：</p>
+                                    <p style={{color: '#999', fontSize: '14px'}}>
+                                        1. 选择年段进行编辑<br/>
+                                        2. 上传各环节图片<br/>
+                                        3. 辨一辨需要标记大图对应的正确答案<br/>
+                                        4. 添加学生名单<br/>
+                                        5. 保存后用 index.html 开始比赛
+                                    </p>
+                                </div>
+                            </div>
+                        </>
+                    )}
                 </div>
             );
         }
