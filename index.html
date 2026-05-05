@@ -388,7 +388,6 @@
             
             // 加载数据
             useEffect(() => {
-                // 优先从 config.json 加载（两个页面共用同一配置）
                 fetch('config.json')
                     .then(res => {
                         if (!res.ok) throw new Error('config.json not found');
@@ -402,18 +401,10 @@
                             throw new Error('invalid format');
                         }
                     })
-                    .catch(() => {
-                        // config.json 不存在，从 IndexedDB 加载
-                        window.SpeechContestDB.loadGrades().then(savedGrades => {
-                            if (savedGrades) setGrades(savedGrades);
-                        });
+                    .catch((err) => {
+                        alert('⚠️ 尚未配置比赛数据\n\n请先使用 admin.html 生成 config.json 配置文件\n\n步骤：打开 admin.html → 导入数据 → 生成配置文件');
+                        console.error('加载配置失败:', err);
                     });
-                
-                window.SpeechContestDB.loadResults().then(savedResults => {
-                    if (savedResults && savedResults.length > 0) {
-                        setResults(savedResults);
-                    }
-                });
             }, []);
             
             // 保存成绩
