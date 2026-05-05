@@ -355,6 +355,7 @@
             const [usedImageSelectLabels, setUsedImageSelectLabels] = useState(new Set()); // 识图选一已用label集合（去重）
             
             const rollInterval = useRef(null);
+            const configInputRef = useRef(null);
             
             // 获取当前年级的环节顺序
             const getGradeRounds = () => {
@@ -387,31 +388,26 @@
             }, [screen, currentRound, currentQuestionIndex]);
             
             // 导入配置文件
-            const handleImportConfig = () => {
-                const input = document.createElement('input');
-                input.type = 'file';
-                input.accept = '.json';
-                input.onchange = (e) => {
-                    const file = e.target.files[0];
-                    if (!file) return;
-                    const reader = new FileReader();
-                    reader.onload = (ev) => {
-                        try {
-                            const data = JSON.parse(ev.target.result);
-                            if (data.grades && Array.isArray(data.grades)) {
-                                setGrades(data.grades);
-                                window.SpeechContestDB.saveGrades(data.grades);
-                                alert('✅ 配置文件加载成功！');
-                            } else {
-                                alert('❌ 配置文件格式错误：缺少 grades 字段或不是数组');
-                            }
-                        } catch (err) {
-                            alert('❌ 解析配置文件失败，请确认是有效的 JSON 文件');
+            // 选择配置文件
+            const onConfigFileChange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    try {
+                        const data = JSON.parse(ev.target.result);
+                        if (data.grades && Array.isArray(data.grades)) {
+                            setGrades(data.grades);
+                            window.SpeechContestDB.saveGrades(data.grades);
+                            alert('✅ 配置文件加载成功！');
+                        } else {
+                            alert('❌ 配置文件格式错误：缺少 grades 字段或不是数组');
                         }
-                    };
-                    reader.readAsText(file);
+                    } catch (err) {
+                        alert('❌ 解析配置文件失败，请确认是有效的 JSON 文件');
+                    }
                 };
-                input.click();
+                reader.readAsText(file);
             };
             
             // 保存成绩
@@ -864,7 +860,7 @@
                                         <div style={{fontSize: '18px', marginBottom: '30px', color: '#666'}}>
                                             尚未配置比赛数据
                                         </div>
-                                        <button className="btn btn-large" onClick={handleImportConfig}>
+                                        <button className="btn btn-large" onClick={() => configInputRef.current.click()}>
                                             📂 导入配置文件
                                         </button>
                                         <p style={{color: '#999', fontSize: '14px', marginTop: '20px'}}>
@@ -888,7 +884,7 @@
                                         </button>
                                     </div>
                                     <div className="mt-20 text-center">
-                                        <button className="btn btn-secondary" onClick={handleImportConfig}>
+                                        <button className="btn btn-secondary" onClick={() => configInputRef.current.click()}>
                                             🔄 重新导入配置
                                         </button>
                                     </div>
@@ -1404,8 +1400,15 @@
             
             return (
                 <div>
+                    <input
+                        ref={configInputRef}
+                        type="file"
+                        accept=".json"
+                        style={{display: 'none'}}
+                        onChange={onConfigFileChange}
+                    />
                     {renderScreen()}
-                    
+
                     {/* 反馈遮罩 */}
                     {feedback.show && (
                         <div className="feedback-overlay show">
