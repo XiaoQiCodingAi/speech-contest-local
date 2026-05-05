@@ -353,7 +353,7 @@
             const [imageSelectTarget, setImageSelectTarget] = useState(null); // 当前题目label
             const [currentBigImg, setCurrentBigImg] = useState(null); // 当前辨一辨大图（用于记录详情）
             const [usedImageSelectLabels, setUsedImageSelectLabels] = useState(new Set()); // 识图选一已用label集合（去重）
-            const [expandedStudent, setExpandedStudent] = useState(null); // 统计页展开学生
+            const [expandedStudents, setExpandedStudents] = useState(new Set()); // 统计页展开的学生索引集合
             const [lightbox, setLightbox] = useState({ open: false, imgs: [], startIdx: 0 }); // 大图预览
 
             const rollInterval = useRef(null);
@@ -1346,18 +1346,26 @@
                                                 <div style={{fontSize: '16px', fontWeight: 'bold', color: '#ff6b6b', marginBottom: '10px', paddingBottom: '5px', borderBottom: '2px solid #ff6b6b'}}>
                                                     {gradeName}（{gradeResults.length}人）
                                                 </div>
-                                                {gradeResults.map((result, index) => (
-                                                    <div key={index}>
-                                                        <div className="stats-item" onClick={() => setExpandedStudent(expandedStudent === index ? null : index)} style={{cursor: 'pointer'}}>
-                                                            <div>
-                                                                <div className="name">{result.student} {expandedStudent === index ? '▲' : '▼'}</div>
-                                                                <div style={{fontSize: '12px', color: '#999'}}>{result.date}</div>
+                                                {gradeResults.map((result, index) => {
+                                                    const isExpanded = expandedStudents.has(index);
+                                                    return (
+                                                        <div key={index}>
+                                                            <div className="stats-item" onClick={() => {
+                                                                const next = new Set(expandedStudents);
+                                                                if (isExpanded) next.delete(index);
+                                                                else next.add(index);
+                                                                setExpandedStudents(next);
+                                                            }} style={{cursor: 'pointer'}}>
+                                                                <div>
+                                                                    <div className="name">{result.student} {isExpanded ? '▲' : '▼'}</div>
+                                                                    <div style={{fontSize: '12px', color: '#999'}}>{result.date}</div>
+                                                                </div>
+                                                                <div className="score">{result.total}分</div>
                                                             </div>
-                                                            <div className="score">{result.total}分</div>
+                                                            {isExpanded && renderResultCard(result)}
                                                         </div>
-                                                        {expandedStudent === index && renderResultCard(result)}
-                                                    </div>
-                                                ))}
+                                                    );
+                                                })}
                                             </div>
                                         ))
                                     )}
