@@ -248,6 +248,13 @@
                 e.target.value = '';
             };
 
+            // 页面加载时自动初始化默认模板（仅当grades为空时）
+            useEffect(() => {
+                if (grades.length === 0) {
+                    setGrades(defaultGrades);
+                }
+            }, []);
+
             const saveGrades = (newGrades) => {
                 setGrades(newGrades);
             };
