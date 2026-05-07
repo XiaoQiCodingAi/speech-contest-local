@@ -387,6 +387,13 @@
                         if (matched) setSelectedGrade(matched);
                     }
                 }
+                // 初始化加载数据
+                if (!grades.length) {
+                    window.SpeechContestDB.loadGrades().then(g => { if (g) setGrades(g); });
+                }
+                if (!results.length) {
+                    window.SpeechContestDB.loadResults().then(r => { if (r && r.length > 0) setResults(r); });
+                }
             }, [screen, currentRound, currentQuestionIndex]);
             
             // 导入配置文件
