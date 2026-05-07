@@ -355,6 +355,7 @@
             const [usedImageSelectLabels, setUsedImageSelectLabels] = useState(new Set()); // 识图选一已用label集合（去重）
             const [expandedStudents, setExpandedStudents] = useState(new Set()); // 统计页展开的学生索引集合
             const [lightbox, setLightbox] = useState({ open: false, imgs: [], startIdx: 0 }); // 大图预览
+            const [finishedStudentNames, setFinishedStudentNames] = useState(new Set()); // 已完成答题的学生姓名
 
             const rollInterval = useRef(null);
             const configInputRef = useRef(null);
@@ -432,21 +433,23 @@
                 // 收集该年级学生
                 const gradeStudents = grade.students || [];
                 setStudents(gradeStudents);
+                setFinishedStudentNames(new Set()); // 切换年级时清空已完成名单
                 setScreen('random');
             };
             
             // 开始随机点名
             const startRolling = () => {
-                if (students.length === 0) {
-                    alert('该年级没有学生，请先在后台添加学生');
+                const availableStudents = students.filter(s => !finishedStudentNames.has(s.name));
+                if (availableStudents.length === 0) {
+                    alert('该年级所有学生已完成答题！');
                     return;
                 }
                 setRolling(true);
                 let count = 0;
                 const maxCount = 20;
                 rollInterval.current = setInterval(() => {
-                    const randomIndex = Math.floor(Math.random() * students.length);
-                    setTempName(students[randomIndex].name);
+                    const randomIndex = Math.floor(Math.random() * availableStudents.length);
+                    setTempName(availableStudents[randomIndex].name);
                     count++;
                     if (count >= maxCount) {
                         clearInterval(rollInterval.current);
@@ -794,6 +797,7 @@
                 };
                 const newResults = [...results, newResult];
                 saveResults(newResults);
+                setFinishedStudentNames(prev => new Set([...prev, currentStudent])); // 标记该学生已完成
                 setScreen('result');
             };
             
@@ -853,6 +857,7 @@
             const clearStats = () => {
                 if (confirm('确定要清空所有成绩吗？')) {
                     saveResults([]);
+                    setFinishedStudentNames(new Set()); // 同时清空已完成学生名单
                 }
             };
             
@@ -930,7 +935,9 @@
                             </div>
                         );
                     
-                    case 'random':
+                    case 'random': {
+                        const availableCount = students.filter(s => !finishedStudentNames.has(s.name)).length;
+                        const finishedCount = finishedStudentNames.size;
                         return (
                             <div className="container">
                                 <h1 className="page-title">随机点名</h1>
@@ -938,9 +945,12 @@
                                     <div className="random-name">
                                         {tempName || '点击按钮开始点名'}
                                     </div>
+                                    <div style={{textAlign: 'center', color: '#666', marginTop: '10px', fontSize: '14px'}}>
+                                        剩余 {availableCount} 人待答题 / 已完成 {finishedCount} 人
+                                    </div>
                                     <div className="text-center mt-20">
-                                        <button className="btn btn-large btn-secondary" onClick={startRolling} disabled={rolling}>
-                                            {rolling ? '随机中...' : '🎲 开始点名'}
+                                        <button className="btn btn-large btn-secondary" onClick={startRolling} disabled={rolling || availableCount === 0}>
+                                            {rolling ? '随机中...' : availableCount === 0 ? '全部完成' : '🎲 开始点名'}
                                         </button>
                                     </div>
                                     {tempName && (
@@ -956,6 +966,7 @@
                                 </div>
                             </div>
                         );
+                    }
                     
                     case 'game': {
                         const rounds = getGradeRounds();
