@@ -372,6 +372,22 @@
                 return rounds;
             };
             
+            // 初始化加载数据
+            useEffect(() => {
+                if (!grades.length) {
+                    window.SpeechContestDB.loadGrades().then(g => { if (g) setGrades(g); });
+                }
+            }, []);
+            
+            // 监听results变化，自动更新已完成学生名单（保持跨会话持久排除）
+            useEffect(() => {
+                if (!selectedGrade || !results.length) return;
+                const finishedFromResults = results
+                    .filter(r => r.gradeId === selectedGrade.id)
+                    .map(r => r.studentName);
+                setFinishedStudentNames(new Set(finishedFromResults));
+            }, [results, selectedGrade]);
+            
             // 监听screen和currentRound和currentQuestionIndex变化，自动准备回合
             useEffect(() => {
                 console.log('useEffect触发, screen=', screen, 'currentRound=', currentRound, 'currentQuestionIndex=', currentQuestionIndex, 'selectedGrade=', selectedGrade ? selectedGrade.id : 'null');
@@ -387,13 +403,6 @@
                         const matched = grades.find(g => g.id === reviewResult.gradeId);
                         if (matched) setSelectedGrade(matched);
                     }
-                }
-                // 初始化加载数据
-                if (!grades.length) {
-                    window.SpeechContestDB.loadGrades().then(g => { if (g) setGrades(g); });
-                }
-                if (!results.length) {
-                    window.SpeechContestDB.loadResults().then(r => { if (r && r.length > 0) setResults(r); });
                 }
             }, [screen, currentRound, currentQuestionIndex]);
             
@@ -433,7 +442,11 @@
                 // 收集该年级学生
                 const gradeStudents = grade.students || [];
                 setStudents(gradeStudents);
-                setFinishedStudentNames(new Set()); // 切换年级时清空已完成名单
+                // 从已有成绩中加载已完成学生名单（不清空，保持跨会话的持久排除）
+                const finishedFromResults = results
+                    .filter(r => r.gradeId === grade.id)
+                    .map(r => r.studentName);
+                setFinishedStudentNames(new Set(finishedFromResults));
                 setScreen('random');
             };
             
@@ -853,7 +866,6 @@
                 setScreen('home');
                 setSelectedGrade(null);
                 setCurrentStudent(null);
-                setFinishedStudentNames(new Set()); // 返回首页时清空已完成名单
             };
             
             // 清空统计
