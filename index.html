@@ -435,6 +435,7 @@
                 // 同步更新UI，异步保存到IndexedDB
                 setResults(newResults);
                 window.SpeechContestDB.saveResults(newResults);
+                console.log('saveResults调用, newResults.length:', newResults.length, 'students:', newResults.map(r => r.student));
             };
             
             // 选择年级
@@ -797,6 +798,7 @@
             
             // 完成游戏
             const finishGame = (scores) => {
+                console.log('finishGame调用, currentStudent:', currentStudent, 'selectedGrade?.id:', selectedGrade?.id);
                 const rTotal = (scores.r || []).reduce((a, b) => a + b, 0);
                 const sTotal = (scores.s || []).reduce((a, b) => a + b, 0);
                 const dTotal = (scores.d || []).reduce((a, b) => a + b, 0);
