@@ -462,6 +462,8 @@
             const confirmStudent = () => {
                 console.log('confirmStudent调用, tempName:', tempName, 'selectedGrade:', selectedGrade?.id);
                 if (!tempName) return;
+                // 标记该学生已进入答题（即使未保存结果也不会重复出现）
+                setFinishedStudentNames(prev => new Set([...prev, tempName]));
                 setCurrentStudent(tempName);
                 setCurrentScores({ r: [], d: [], e: [], s: [] });
                 setCurrentRound(0);
