@@ -967,6 +967,9 @@
                                     </div>
                                     <div style={{textAlign: 'center', color: '#666', marginTop: '10px', fontSize: '14px'}}>
                                         剩余 {availableCount} 人待答题 / 已完成 {finishedCount} 人
+                                        <span style={{marginLeft: 10, color: '#999', fontSize: 12}}>
+                                            已完成列表: {[...finishedStudentNames].join(', ') || '空'}
+                                        </span>
                                     </div>
                                     <div className="text-center mt-20">
                                         <button className="btn btn-large btn-secondary" onClick={startRolling} disabled={rolling || availableCount === 0}>
