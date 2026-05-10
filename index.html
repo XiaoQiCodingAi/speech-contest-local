@@ -377,6 +377,7 @@
                 if (!grades.length) {
                     window.SpeechContestDB.loadGrades().then(g => { if (g) setGrades(g); });
                 }
+                window.SpeechContestDB.loadResults().then(r => { if (r && r.length > 0) setResults(r); });
             }, []);
             
             // 监听results变化，自动更新已完成学生名单（保持跨会话持久排除）
