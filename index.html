@@ -385,7 +385,7 @@
                 if (!selectedGrade || !results.length) return;
                 const finishedFromResults = results
                     .filter(r => r.gradeId === selectedGrade.id)
-                    .map(r => r.studentName);
+                    .map(r => r.student);
                 setFinishedStudentNames(new Set(finishedFromResults));
             }, [results, selectedGrade]);
             
@@ -447,7 +447,7 @@
                 window.SpeechContestDB.loadResults().then(allResults => {
                     const finishedFromResults = (allResults || [])
                         .filter(r => r.gradeId === grade.id)
-                        .map(r => r.studentName);
+                        .map(r => r.student);
                     setFinishedStudentNames(new Set(finishedFromResults));
                 });
                 setScreen('random');
